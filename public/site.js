@@ -18,6 +18,8 @@ const translations = {
     product_preview: 'Follow Audit product preview',
     review: 'Review',
     protected: 'Protected',
+    settings: 'Settings',
+    about: 'About',
     workspace_label: 'Local review',
     review_follows: 'Review follows',
     selected: 'selected',
@@ -46,6 +48,8 @@ const translations = {
     step_review_body: 'Protect, select, and confirm only what you intend to change.',
     flow_footer: 'The scan is fast. The decision stays yours.',
     experience_product: 'Experience the product',
+    privacy_label: 'Privacy',
+    safety_principles: 'Safety principles',
     safety_title: 'Private by design.\nDeliberate by default.',
     safety_body: 'Your following list stays in memory for the current run. Follow Audit has no backend, no analytics, and never stores your session credentials.',
     safety_review: 'Review before action',
@@ -83,6 +87,8 @@ const translations = {
     product_preview: 'Demonstração do produto Follow Audit',
     review: 'Revisar',
     protected: 'Protegido',
+    settings: 'Configurações',
+    about: 'Sobre',
     workspace_label: 'Revisão local',
     review_follows: 'Revisar perfis seguidos',
     selected: 'selecionados',
@@ -111,6 +117,8 @@ const translations = {
     step_review_body: 'Proteja, selecione e confirme somente o que pretende alterar.',
     flow_footer: 'A análise é rápida. A decisão continua sendo sua.',
     experience_product: 'Conhecer o produto',
+    privacy_label: 'Privacidade',
+    safety_principles: 'Princípios de segurança',
     safety_title: 'Privado por design.\nDeliberado por padrão.',
     safety_body: 'Sua lista de perfis seguidos permanece na memória durante a execução. O Follow Audit não tem backend nem analytics e nunca armazena suas credenciais de sessão.',
     safety_review: 'Revisão antes da ação',
@@ -148,6 +156,8 @@ const translations = {
     product_preview: 'Vista previa del producto Follow Audit',
     review: 'Revisar',
     protected: 'Protegido',
+    settings: 'Ajustes',
+    about: 'Acerca de',
     workspace_label: 'Revisión local',
     review_follows: 'Revisar seguidos',
     selected: 'seleccionados',
@@ -176,6 +186,8 @@ const translations = {
     step_review_body: 'Protege, selecciona y confirma solo lo que quieres cambiar.',
     flow_footer: 'El análisis es rápido. La decisión sigue siendo tuya.',
     experience_product: 'Probar el producto',
+    privacy_label: 'Privacidad',
+    safety_principles: 'Principios de seguridad',
     safety_title: 'Privado por diseño.\nDeliberado por defecto.',
     safety_body: 'Tu lista de seguidos permanece en memoria durante la ejecución. Follow Audit no tiene backend ni analítica y nunca almacena tus credenciales de sesión.',
     safety_review: 'Revisión antes de actuar',
@@ -213,6 +225,8 @@ const translations = {
     product_preview: 'Aperçu du produit Follow Audit',
     review: 'Examiner',
     protected: 'Protégé',
+    settings: 'Réglages',
+    about: 'À propos',
     workspace_label: 'Examen local',
     review_follows: 'Examiner les abonnements',
     selected: 'sélectionnés',
@@ -241,6 +255,8 @@ const translations = {
     step_review_body: 'Protégez, sélectionnez et confirmez uniquement ce que vous souhaitez changer.',
     flow_footer: "L'analyse est rapide. La décision reste la vôtre.",
     experience_product: 'Essayer le produit',
+    privacy_label: 'Confidentialité',
+    safety_principles: 'Principes de sécurité',
     safety_title: 'Privé dès la conception.\nDélibéré par défaut.',
     safety_body: "Votre liste d'abonnements reste en mémoire pendant l'exécution. Follow Audit n'a ni backend ni outil d'analyse et ne stocke jamais vos identifiants de session.",
     safety_review: "Examen avant l'action",
@@ -278,6 +294,8 @@ const translations = {
     product_preview: 'Follow Audit Produktvorschau',
     review: 'Prüfen',
     protected: 'Geschützt',
+    settings: 'Einstellungen',
+    about: 'Info',
     workspace_label: 'Lokale Prüfung',
     review_follows: 'Folgekonten prüfen',
     selected: 'ausgewählt',
@@ -306,6 +324,8 @@ const translations = {
     step_review_body: 'Schütze, wähle und bestätige nur, was du ändern möchtest.',
     flow_footer: 'Der Scan ist schnell. Die Entscheidung bleibt bei dir.',
     experience_product: 'Produkt erleben',
+    privacy_label: 'Datenschutz',
+    safety_principles: 'Sicherheitsprinzipien',
     safety_title: 'Privat konzipiert.\nBewusst voreingestellt.',
     safety_body: 'Deine Folge-Liste bleibt während des aktuellen Laufs im Arbeitsspeicher. Follow Audit hat weder Backend noch Analytics und speichert niemals deine Sitzungsdaten.',
     safety_review: 'Prüfen vor dem Handeln',
@@ -326,7 +346,9 @@ const translations = {
   },
 };
 
-const languageSelect = document.querySelector('#language');
+const languageMenu = document.querySelector('#language-menu');
+const activeLanguageLabel = document.querySelector('[data-active-language]');
+const languageButtons = [...document.querySelectorAll('[data-language]')];
 const themeToggle = document.querySelector('#theme-toggle');
 const copyButtons = [...document.querySelectorAll('.copy-script')];
 const feedbackElements = [...document.querySelectorAll('.copy-feedback')];
@@ -356,7 +378,12 @@ function applyLanguage(language) {
   document.documentElement.lang = activeLanguage;
   document.title = copy._page_title;
   description.content = copy._meta;
-  languageSelect.value = activeLanguage;
+  activeLanguageLabel.textContent = activeLanguage === 'pt-BR' ? 'PT' : activeLanguage.toUpperCase();
+  languageButtons.forEach((button) => {
+    const isActive = button.dataset.language === activeLanguage;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', String(isActive));
+  });
   document.querySelectorAll('[data-i18n]').forEach((element) => {
     const value = copy[element.dataset.i18n];
     if (value) element.textContent = value;
@@ -426,10 +453,22 @@ async function writeClipboard(text) {
   if (!copied) throw new Error('Clipboard unavailable');
 }
 
-languageSelect.addEventListener('change', () => {
-  applyLanguage(languageSelect.value);
+languageButtons.forEach((button) => button.addEventListener('click', () => {
+  applyLanguage(button.dataset.language);
   storage.set('follow-audit:site-language', activeLanguage);
+  languageMenu.open = false;
   feedbackElements.forEach((element) => { element.textContent = ''; });
+}));
+
+document.addEventListener('click', (event) => {
+  if (!languageMenu.contains(event.target)) languageMenu.open = false;
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && languageMenu.open) {
+    languageMenu.open = false;
+    languageMenu.querySelector('summary').focus();
+  }
 });
 
 themeToggle.addEventListener('click', () => {

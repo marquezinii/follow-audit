@@ -14,6 +14,7 @@
     <link rel="icon" href="logo.png" type="image/png">
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
     <link rel="manifest" href="site.webmanifest">
+    <link rel="preload" href="fonts/Manrope-Variable.ttf" as="font" type="font/ttf" crossorigin>
     <script>
       document.documentElement.classList.add('js');
       try {
@@ -37,21 +38,28 @@
         <a href="#safety" data-i18n="nav_safety">Safety</a>
       </nav>
       <div class="header-tools">
-        <label class="language-control">
-          <span class="visually-hidden" data-i18n="language_label">Language</span>
-          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.4 2.5 3.6 5.5 3.6 9S14.4 18.5 12 21c-2.4-2.5-3.6-5.5-3.6-9S9.6 5.5 12 3Z"/></svg>
-          <select id="language" autocomplete="off">
-            <option value="en">EN</option>
-            <option value="pt-BR">PT</option>
-            <option value="es">ES</option>
-            <option value="fr">FR</option>
-            <option value="de">DE</option>
-          </select>
-        </label>
-        <button id="theme-toggle" class="icon-button" type="button" aria-label="Switch to dark mode" data-i18n-aria-label="theme_dark">
-          <svg class="sun" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>
-          <svg class="moon" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
+        <details id="language-menu" class="language-menu">
+          <summary data-i18n-aria-label="language_label">
+            <svg class="globe" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.4 2.5 3.6 5.5 3.6 9S14.4 18.5 12 21c-2.4-2.5-3.6-5.5-3.6-9S9.6 5.5 12 3Z"/></svg>
+            <span data-active-language>EN</span>
+            <svg class="chevron" aria-hidden="true" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg>
+          </summary>
+          <div class="language-popover">
+            <p data-i18n="language_label">Language</p>
+            <button type="button" data-language="en"><span><strong>English</strong><small>EN</small></span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 12 4 4 8-8"/></svg></button>
+            <button type="button" data-language="pt-BR"><span><strong>Português</strong><small>PT</small></span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 12 4 4 8-8"/></svg></button>
+            <button type="button" data-language="es"><span><strong>Español</strong><small>ES</small></span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 12 4 4 8-8"/></svg></button>
+            <button type="button" data-language="fr"><span><strong>Français</strong><small>FR</small></span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 12 4 4 8-8"/></svg></button>
+            <button type="button" data-language="de"><span><strong>Deutsch</strong><small>DE</small></span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 12 4 4 8-8"/></svg></button>
+          </div>
+        </details>
+        <span class="tool-divider" aria-hidden="true"></span>
+        <button id="theme-toggle" class="theme-switch" type="button" aria-label="Switch to dark mode" data-i18n-aria-label="theme_dark">
+          <svg class="theme-sun" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>
+          <span class="theme-track" aria-hidden="true"><span></span></span>
+          <svg class="theme-moon" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
         </button>
+        <span class="tool-divider" aria-hidden="true"></span>
         <a class="github-link" href="https://github.com/marquezinii/follow-audit" aria-label="Follow Audit on GitHub">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.87c-2.78.6-3.37-1.18-3.37-1.18-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.35 1.09 2.92.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.6 9.6 0 0 1 12 6.82a9.6 9.6 0 0 1 2.5.34c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.86v2.76c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>
         </a>
@@ -79,6 +87,8 @@
               <img src="logo.png" alt="" width="46" height="46">
               <span class="rail-active"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/></svg><span data-i18n="review">Review</span></span>
               <span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 2.7 8 7 10 4.3-2 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg><span data-i18n="protected">Protected</span></span>
+              <span><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 8.97 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.52-1.03H3v-4h.08A1.7 1.7 0 0 0 4.6 8.94a1.7 1.7 0 0 0-.34-1.88L4.2 7l2.83-2.83.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 10 3.05V3h4v.08a1.7 1.7 0 0 0 1.03 1.52 1.7 1.7 0 0 0 1.88-.34l.06-.06L19.8 7l-.06.06a1.7 1.7 0 0 0-.34 1.88A1.7 1.7 0 0 0 20.92 10H21v4h-.08A1.7 1.7 0 0 0 19.4 15Z"/></svg><span data-i18n="settings">Settings</span></span>
+              <span class="rail-about"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span data-i18n="about">About</span></span>
             </aside>
             <div class="workspace-main">
               <div class="workspace-heading">
@@ -91,10 +101,12 @@
               </div>
               <div class="account-list">
                 <div class="account-row account-head"><span></span><span data-i18n="account">Account</span><span data-i18n="status">Status</span><span data-i18n="action">Action</span></div>
-                <div class="account-row"><span class="checked"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m7 12 3 3 7-7"/></svg></span><span class="account"><span class="avatar avatar-a">AM</span><span><strong>Ava Martin</strong><small>@avamartin</small></span></span><span class="negative" data-i18n="does_not_follow">Doesn't follow you</span><button type="button" data-i18n="protect">Protect</button></div>
-                <div class="account-row"><span class="unchecked"></span><span class="account"><span class="avatar avatar-b">LC</span><span><strong>Liam Chen</strong><small>@liamchen</small></span></span><span class="positive" data-i18n="follows_you">Follows you</span><button type="button" data-i18n="protect">Protect</button></div>
-                <div class="account-row protected-row"><span class="checked"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m7 12 3 3 7-7"/></svg></span><span class="account"><span class="avatar avatar-c">NP</span><span><strong>Noah Patel</strong><small>@noahpatel</small></span></span><span class="negative" data-i18n="does_not_follow">Doesn't follow you</span><button type="button" class="is-protected" data-i18n="protected">Protected</button></div>
-                <div class="account-row"><span class="checked"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m7 12 3 3 7-7"/></svg></span><span class="account"><span class="avatar avatar-d">IR</span><span><strong>Isabella Rossi</strong><small>@isabellarossi</small></span></span><span class="negative" data-i18n="does_not_follow">Doesn't follow you</span><button type="button" data-i18n="protect">Protect</button></div>
+                <div class="account-row"><span class="checked"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m7 12 3 3 7-7"/></svg></span><span class="account"><img class="avatar" src="avatars/ava-martin.png" alt="" width="40" height="40"><span><strong>Ava Martin</strong><small>@avamartin</small></span></span><span class="negative" data-i18n="does_not_follow">Doesn't follow you</span><button type="button" data-i18n="protect">Protect</button></div>
+                <div class="account-row"><span class="unchecked"></span><span class="account"><img class="avatar" src="avatars/liam-chen.png" alt="" width="40" height="40"><span><strong>Liam Chen</strong><small>@liamchen</small></span></span><span class="positive" data-i18n="follows_you">Follows you</span><button type="button" data-i18n="protect">Protect</button></div>
+                <div class="account-row protected-row"><span class="checked"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m7 12 3 3 7-7"/></svg></span><span class="account"><img class="avatar" src="avatars/noah-patel.png" alt="" width="40" height="40"><span><strong>Noah Patel</strong><small>@noahpatel</small></span></span><span class="negative" data-i18n="does_not_follow">Doesn't follow you</span><button type="button" class="is-protected" data-i18n="protected">Protected</button></div>
+                <div class="account-row"><span class="unchecked"></span><span class="account"><img class="avatar" src="avatars/isabella-rossi.png" alt="" width="40" height="40"><span><strong>Isabella Rossi</strong><small>@isabellarossi</small></span></span><span class="positive" data-i18n="follows_you">Follows you</span><button type="button" data-i18n="protect">Protect</button></div>
+                <div class="account-row"><span class="checked"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m7 12 3 3 7-7"/></svg></span><span class="account"><img class="avatar" src="avatars/mason-lee.png" alt="" width="40" height="40"><span><strong>Mason Lee</strong><small>@masonlee</small></span></span><span class="negative" data-i18n="does_not_follow">Doesn't follow you</span><button type="button" data-i18n="protect">Protect</button></div>
+                <div class="account-row"><span class="unchecked"></span><span class="account"><img class="avatar" src="avatars/sophie-dubois.png" alt="" width="40" height="40"><span><strong>Sophie Dubois</strong><small>@sophiedubois</small></span></span><span class="positive" data-i18n="follows_you">Follows you</span><button type="button" data-i18n="protect">Protect</button></div>
               </div>
             </div>
           </div>
@@ -117,13 +129,16 @@
       </section>
       <section id="safety" class="safety-section">
         <div class="section-shell safety-layout">
-          <div class="safety-copy reveal"><h2 data-i18n="safety_title">Private by design.<br>Deliberate by default.</h2><p data-i18n="safety_body">Your following list stays in memory for the current run. Follow Audit has no backend, no analytics, and never stores your session credentials.</p></div>
-          <ul class="safety-list reveal" data-delay="1">
-            <li><span></span><strong data-i18n="safety_review">Review before action</strong></li>
-            <li><span></span><strong data-i18n="safety_protected">Protected accounts stay excluded</strong></li>
-            <li><span></span><strong data-i18n="safety_queue">Sequential, cancellable queue</strong></li>
-            <li><span></span><strong data-i18n="safety_confirm">Explicit confirmation every time</strong></li>
-          </ul>
+          <div class="safety-copy reveal"><p class="section-label" data-i18n="privacy_label">Privacy</p><h2 data-i18n="safety_title">Private by design.<br>Deliberate by default.</h2><p data-i18n="safety_body">Your following list stays in memory for the current run. Follow Audit has no backend, no analytics, and never stores your session credentials.</p></div>
+          <div class="safety-principles reveal" data-delay="1">
+            <p class="section-label" data-i18n="safety_principles">Safety principles</p>
+            <ul class="safety-list">
+              <li><span></span><strong data-i18n="safety_review">Review before action</strong></li>
+              <li><span></span><strong data-i18n="safety_protected">Protected accounts stay excluded</strong></li>
+              <li><span></span><strong data-i18n="safety_queue">Sequential, cancellable queue</strong></li>
+              <li><span></span><strong data-i18n="safety_confirm">Explicit confirmation every time</strong></li>
+            </ul>
+          </div>
           <aside class="honest-notice reveal"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><p data-i18n="notice">Follow Audit uses private Instagram endpoints that can change without notice. High-volume actions may trigger platform restrictions.</p></aside>
           <div class="final-cta reveal"><h2 data-i18n="cta_title">Ready for a cleaner following list?</h2><div><button class="button button-primary copy-script" type="button"><span data-i18n="copy_script">Copy script</span></button><a class="button button-dark" href="https://github.com/marquezinii/follow-audit"><span data-i18n="view_source">View source</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></a></div><p class="copy-feedback" role="status" aria-live="polite"></p></div>
         </div>

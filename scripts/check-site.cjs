@@ -4,7 +4,7 @@ const { join } = require('node:path');
 const root = join(__dirname, '..');
 const html = readFileSync(join(root, 'public', 'index.html'), 'utf8');
 const script = readFileSync(join(root, 'public', 'site.js'), 'utf8');
-const source = script.match(/const translations = (\{[\s\S]*?\n\});\n\nconst languageSelect/);
+const source = script.match(/const translations = (\{[\s\S]*?\n\});\n\nconst \w+/);
 if (!source) throw new Error('Could not read the site translations.');
 
 const translations = Function(`"use strict"; return (${source[1]});`)();
