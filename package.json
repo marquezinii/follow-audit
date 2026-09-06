@@ -21,7 +21,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/**/*.test.ts",
     "lint": "eslint src tests",
-    "check": "npm run lint && npm run test && npm run typecheck && npm run build"
+    "check:site": "node --check public/site.js && node scripts/check-site.cjs",
+    "check": "npm run lint && npm run test && npm run typecheck && npm run check:site && npm run build"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

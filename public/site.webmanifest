@@ -4,8 +4,8 @@
   "description": "A local-first workspace for reviewing the accounts you follow on Instagram.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#edf2f3",
-  "theme_color": "#123d4a",
+  "background_color": "#f7fafc",
+  "theme_color": "#061522",
   "icons": [
     {
       "src": "icon-192.png",
