@@ -15,7 +15,7 @@
   },
   "scripts": {
     "dev": "npm run build && node scripts/serve.cjs",
-    "bundle": "esbuild src/main.ts --bundle --minify --sourcemap --loader:.png=dataurl --outfile=dist/dist.js",
+    "bundle": "esbuild src/main.ts --bundle --minify --sourcemap --loader:.png=dataurl --loader:.ttf=dataurl --outfile=dist/dist.js",
     "prepare-pages": "node scripts/prepare-pages.cjs",
     "build": "npm run bundle && npm run prepare-pages",
     "typecheck": "tsc --noEmit",

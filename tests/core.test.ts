@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { parseFollowingPage, runSequential, scanFollowing, type Account } from '../src/core';
+import { format, resolveLocale, translations } from '../src/i18n';
 
 const account = (id: string): Account => ({
   id,
@@ -73,4 +74,11 @@ void test('cancellation interrupts the queue delay', async () => {
   setTimeout(() => controller.abort(), 5);
 
   await assert.rejects(run, /abort|cancel/i);
+});
+
+void test('resolves supported locales and formats translated values', () => {
+  assert.equal(resolveLocale(null, 'pt-PT'), 'pt-BR');
+  assert.equal(resolveLocale('fr', 'en-US'), 'fr');
+  assert.equal(resolveLocale('unknown', 'it-IT'), 'en');
+  assert.equal(format(translations.de, 'review_changes', { count: 3 }), 'Auswahl prüfen · 3');
 });
