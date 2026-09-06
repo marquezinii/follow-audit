@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Review the accounts you follow before deciding on any unfollow.">
+    <meta name="theme-color" content="#123d4a">
+    <meta property="og:title" content="Follow Audit">
+    <meta property="og:description" content="A local-first workspace for reviewing the accounts you follow on Instagram.">
+    <meta property="og:image" content="https://marquezinii.github.io/follow-audit/logo.png">
+    <title>Follow Audit</title>
+    <link rel="icon" href="logo.png" type="image/png">
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+    <link rel="manifest" href="site.webmanifest">
+    <link rel="stylesheet" href="site.css">
+  </head>
+  <body>
+    <header class="nav">
+      <a class="brand" href="./"><img src="logo.png" alt=""> Follow Audit</a>
+      <a href="https://github.com/marquezinii/follow-audit">View on GitHub</a>
+    </header>
+    <main>
+      <section class="hero">
+        <p class="eyebrow">LOCAL-FIRST FOLLOWING REVIEW</p>
+        <h1>Less impulse.<br>More control.</h1>
+        <p class="lead">Audit who you follow, protect important accounts, and build your queue deliberately. Your results stay in your browser.</p>
+        <div class="actions">
+          <button id="copy" type="button">Copy script</button>
+          <a href="preview.html">Open live preview</a>
+        </div>
+        <p id="feedback" class="feedback" role="status"></p>
+      </section>
+      <section class="steps" aria-labelledby="steps-title">
+        <p class="eyebrow">HOW IT WORKS</p>
+        <h2 id="steps-title">Three steps. One deliberate decision.</h2>
+        <ol>
+          <li><strong>Sign in</strong><span>Open Instagram and keep the session active in your browser.</span></li>
+          <li><strong>Launch</strong><span>Open Developer Tools and paste the copied script into the Console.</span></li>
+          <li><strong>Review</strong><span>Protect, select, and confirm only the accounts you intend to change.</span></li>
+        </ol>
+      </section>
+      <section class="notice">
+        <h2>Know the limits</h2>
+        <p>Follow Audit uses private Instagram endpoints that can change without notice. High-volume actions may trigger platform restrictions. No delay strategy can guarantee otherwise.</p>
+      </section>
+    </main>
+    <footer>Follow Audit · MIT · 2026</footer>
+    <script src="site.js"></script>
+  </body>
+</html>

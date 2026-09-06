@@ -1,0 +1,35 @@
+{
+  "name": "follow-audit",
+  "version": "2.0.0",
+  "private": true,
+  "description": "A local-first review workspace for the accounts you follow on Instagram.",
+  "license": "MIT",
+  "author": "marquezinii",
+  "homepage": "https://marquezinii.github.io/follow-audit/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marquezinii/follow-audit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/marquezinii/follow-audit/issues"
+  },
+  "scripts": {
+    "dev": "npm run build && node scripts/serve.cjs",
+    "bundle": "esbuild src/main.ts --bundle --minify --sourcemap --loader:.png=dataurl --outfile=dist/dist.js",
+    "prepare-pages": "node scripts/prepare-pages.cjs",
+    "build": "npm run bundle && npm run prepare-pages",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/**/*.test.ts",
+    "lint": "eslint src tests",
+    "check": "npm run lint && npm run test && npm run typecheck && npm run build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.4.1",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.10.0",
+    "tsx": "^4.23.13",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.69.0"
+  }
+}

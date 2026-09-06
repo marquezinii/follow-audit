@@ -1,0 +1,30 @@
+:root { color: #132238; background: #edf2f3; font: 16px/1.6 Inter, ui-sans-serif, system-ui, sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+a { color: inherit; }
+.nav { display: flex; align-items: center; justify-content: space-between; min-height: 72px; padding: 12px clamp(20px, 6vw, 88px); border-bottom: 1px solid #cbd5d8; background: #fff; }
+.nav a { font-size: 14px; font-weight: 800; text-decoration: none; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand img { width: 42px; height: 42px; object-fit: contain; }
+main { max-width: 1240px; margin: auto; padding: clamp(48px, 9vw, 120px) clamp(20px, 6vw, 72px); }
+.hero { max-width: 880px; }
+.eyebrow { margin: 0 0 14px; color: #d85628; font-size: 12px; font-weight: 900; letter-spacing: .18em; }
+h1 { margin: 0; font: 800 clamp(58px, 10vw, 126px)/.86 Georgia, serif; letter-spacing: -.07em; }
+.lead { max-width: 650px; margin: 34px 0; color: #526671; font-size: clamp(18px, 2.5vw, 24px); }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.actions button, .actions a { display: inline-grid; place-items: center; min-height: 50px; padding: 0 22px; border: 0; border-radius: 11px; font-weight: 900; text-decoration: none; }
+.actions button { color: #10232c; background: #b8f2d5; box-shadow: 0 4px 0 #123d4a; cursor: pointer; }
+.actions a { border: 1px solid #b8c6ca; background: #fff; }
+.feedback { min-height: 24px; color: #526671; }
+.steps { margin-top: clamp(90px, 14vw, 170px); }
+.steps h2 { max-width: 700px; margin: 0; font: 800 clamp(34px, 6vw, 64px)/1 Georgia, serif; letter-spacing: -.04em; }
+ol { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin: 46px 0 0; padding: 0; list-style: none; background: #cbd5d8; }
+li { min-height: 190px; padding: 28px; background: #fff; }
+li strong, li span { display: block; }
+li strong { color: #123d4a; font: 800 28px Georgia, serif; }
+li span { margin-top: 16px; color: #526671; }
+.notice { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; margin-top: 80px; padding: 34px; color: #fff; background: #123d4a; }
+.notice h2, .notice p { margin: 0; }
+footer { padding: 28px clamp(20px, 6vw, 88px); color: #647482; border-top: 1px solid #cbd5d8; }
+button:focus-visible, a:focus-visible { outline: 3px solid #ffb000; outline-offset: 3px; }
+@media (max-width: 700px) { ol, .notice { grid-template-columns: 1fr; } h1 { font-size: 58px; } }
