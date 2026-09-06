@@ -8,7 +8,8 @@ const HOST_ID = 'follow-audit-app';
 const PROTECTED_KEY = 'follow-audit:protected';
 const LOCALE_KEY = 'follow-audit:language';
 const THEME_KEY = 'follow-audit:theme';
-const localPreview = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
+const previewMode = ['localhost', '127.0.0.1', '::1'].includes(location.hostname)
+  || (location.hostname === 'marquezinii.github.io' && location.pathname.endsWith('/follow-audit/preview.html'));
 const instagramHost = location.hostname === 'instagram.com' || location.hostname.endsWith('.instagram.com');
 
 type Mode = 'idle' | 'scanning' | 'ready' | 'running' | 'error';
@@ -203,9 +204,9 @@ function start(): void {
 
   const scan = async (): Promise<void> => {
     controller = new AbortController(); mode = 'scanning'; progress = 1; results.clear(); selected.clear();
-    setStatus(localPreview ? 'status_preview_loading' : 'status_loading'); render();
+    setStatus(previewMode ? 'status_preview_loading' : 'status_loading'); render();
     try {
-      accounts = localPreview ? await previewAccounts(controller.signal) : await scanFollowing(
+      accounts = previewMode ? await previewAccounts(controller.signal) : await scanFollowing(
         (cursor, signal) => gateway.loadFollowing(cursor, signal), controller.signal,
         { onProgress: (loaded, total) => { progress = total > 0 ? Math.min(99, Math.round((loaded / total) * 100)) : 1; setStatus('status_loading_progress', { loaded, total }); render(); } },
       );
@@ -240,7 +241,7 @@ function start(): void {
     const batchMinutes = numberInput(get<HTMLInputElement>('#batch-delay'), 1, 30, 5);
     controller = new AbortController(); mode = 'running'; progress = 1; setStatus('status_queue'); render();
     try {
-      await runSequential(queue, (account, signal) => localPreview ? wait(250, signal) : gateway.unfollow(account.id, signal), controller.signal, {
+      await runSequential(queue, (account, signal) => previewMode ? wait(250, signal) : gateway.unfollow(account.id, signal), controller.signal, {
         delayMs: delaySeconds * 1_000, batchSize: 5, batchDelayMs: batchMinutes * 60_000,
         onResult: (account, ok, completed, total) => { results.set(account.id, ok ? 'ok' : 'error'); selected.delete(account.id); progress = Math.round((completed / total) * 100); setStatus('status_queue_progress', { completed, total }); render(); },
       });
@@ -290,7 +291,7 @@ function start(): void {
   });
   document.addEventListener('keydown', onKeyDown);
   applyCopy(); render();
-  if (localPreview) void scan();
+  if (previewMode) void scan();
 }
 
 function loadProtected(): Set<string> {
@@ -433,5 +434,5 @@ const styles = `
   @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
 `;
 
-if (!instagramHost && !localPreview) alert('Open Instagram before running Follow Audit.');
+if (!instagramHost && !previewMode) alert('Open Instagram before running Follow Audit.');
 else if (!document.getElementById(HOST_ID)) start();
