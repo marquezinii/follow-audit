@@ -98,12 +98,10 @@ function start(): void {
   };
 
   const render = (): void => {
-    const { accounts, selected, results } = workspaces[listKind];
+    const { accounts } = workspaces[listKind];
     const visible = visibleAccounts();
     const locked = mode === 'scanning' || mode === 'running';
     const nonmutual = accounts.filter(account => !(listKind === 'following' ? account.followsYou : account.youFollow)).length;
-    const selectable = visible.filter(account => !protectedIds.has(account.id) && results.get(account.id) !== 'ok');
-    const allVisibleSelected = selectable.length > 0 && selectable.every(account => selected.has(account.id));
     const hasAccounts = accounts.length > 0;
 
     get<HTMLElement>('#status').textContent = text(statusKey, statusValues);
@@ -113,16 +111,11 @@ function start(): void {
     get<HTMLElement>('#total-count').textContent = String(accounts.length);
     get<HTMLElement>('#nonmutual-count').textContent = String(nonmutual);
     get<HTMLElement>('#protected-count').textContent = String(protectedIds.size);
-    get<HTMLElement>('#selection-count').textContent = selected.size === 0 ? text('selection_none') : text('selection_count', { count: selected.size });
     get<HTMLElement>('#page-title').textContent = text(view === 'protected' ? 'protected_title' : `${listKind}_title`);
     get<HTMLElement>('#page-body').textContent = text(view === 'protected' ? 'protected_body' : `${listKind}_body`);
     get<HTMLButtonElement>('#scan').disabled = locked;
     get<HTMLElement>('#scan-label').textContent = text(hasAccounts ? 'refresh' : 'audit');
-    get<HTMLButtonElement>('#run').disabled = locked || selected.size === 0;
-    get<HTMLElement>('#run-label').textContent = text(listKind === 'following' ? 'review_unfollow' : 'review_remove', { count: selected.size });
     get<HTMLButtonElement>('#cancel').hidden = !locked;
-    get<HTMLButtonElement>('#select-visible').disabled = locked || selectable.length === 0;
-    get<HTMLElement>('#select-visible-label').textContent = text(allVisibleSelected ? 'clear_visible' : 'select_visible');
     get<HTMLButtonElement>('#export').disabled = !hasAccounts;
     get<HTMLInputElement>('#search').disabled = locked;
     get<HTMLElement>('#sidebar-summary').hidden = !hasAccounts;
@@ -146,7 +139,21 @@ function start(): void {
       button.setAttribute('aria-pressed', String(active));
       button.disabled = locked;
     });
+    renderSelection();
     renderList(visible, locked);
+  };
+
+  const renderSelection = (): void => {
+    const { selected, results } = workspaces[listKind];
+    const locked = mode === 'scanning' || mode === 'running';
+    const selectable = visibleAccounts().filter(account => !protectedIds.has(account.id) && results.get(account.id) !== 'ok');
+    const allVisibleSelected = selectable.length > 0 && selectable.every(account => selected.has(account.id));
+
+    get<HTMLElement>('#selection-count').textContent = selected.size === 0 ? text('selection_none') : text('selection_count', { count: selected.size });
+    get<HTMLButtonElement>('#run').disabled = locked || selected.size === 0;
+    get<HTMLElement>('#run-label').textContent = text(listKind === 'following' ? 'review_unfollow' : 'review_remove', { count: selected.size });
+    get<HTMLButtonElement>('#select-visible').disabled = locked || selectable.length === 0;
+    get<HTMLElement>('#select-visible-label').textContent = text(allVisibleSelected ? 'clear_visible' : 'select_visible');
   };
 
   const renderList = (visible: readonly Account[], locked: boolean): void => {
@@ -191,7 +198,8 @@ function start(): void {
       checkbox.addEventListener('change', () => {
         if (checkbox.checked) selected.add(account.id);
         else selected.delete(account.id);
-        render();
+        item.dataset.selected = String(checkbox.checked);
+        renderSelection();
       });
 
       const accountCell = document.createElement('div');
