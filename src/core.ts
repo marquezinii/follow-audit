@@ -6,15 +6,18 @@ export interface Account {
   readonly isPrivate: boolean;
   readonly isVerified: boolean;
   readonly followsYou: boolean;
+  readonly youFollow: boolean;
 }
 
-export interface FollowingPage {
+export interface AccountPage {
   readonly accounts: readonly Account[];
   readonly total: number;
   readonly nextCursor?: string;
 }
 
-type PageLoader = (cursor: string | undefined, signal: AbortSignal) => Promise<FollowingPage>;
+export type ListKind = 'followers' | 'following';
+
+type PageLoader = (cursor: string | undefined, signal: AbortSignal) => Promise<AccountPage>;
 
 interface ScanOptions {
   readonly maxPages?: number;
@@ -32,7 +35,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function parseAccount(value: unknown): Account {
+function parseAccount(value: unknown, kind: ListKind): Account {
   if (!isObject(value)
     || typeof value.id !== 'string'
     || !/^\d+$/.test(value.id)
@@ -41,7 +44,8 @@ function parseAccount(value: unknown): Account {
     || typeof value.profile_pic_url !== 'string'
     || typeof value.is_private !== 'boolean'
     || typeof value.is_verified !== 'boolean'
-    || typeof value.follows_viewer !== 'boolean') {
+    || (kind === 'following' && typeof value.follows_viewer !== 'boolean')
+    || (kind === 'followers' && typeof value.followed_by_viewer !== 'boolean')) {
     throw new Error('The response contains an invalid account.');
   }
 
@@ -52,7 +56,8 @@ function parseAccount(value: unknown): Account {
     avatarUrl: value.profile_pic_url,
     isPrivate: value.is_private,
     isVerified: value.is_verified,
-    followsYou: value.follows_viewer,
+    followsYou: kind === 'followers' || value.follows_viewer as boolean,
+    youFollow: kind === 'following' || value.followed_by_viewer as boolean,
   };
 }
 
@@ -61,12 +66,12 @@ function parseAccount(value: unknown): Account {
  *
  * @throws {Error} When the payload does not match the expected following-page contract.
  */
-export function parseFollowingPage(payload: unknown): FollowingPage {
+function parseAccountPage(payload: unknown, kind: ListKind): AccountPage {
   if (!isObject(payload) || !isObject(payload.data) || !isObject(payload.data.user)) {
     throw new Error('Instagram did not return the expected data.');
   }
 
-  const page = payload.data.user.edge_follow;
+  const page = payload.data.user[kind === 'following' ? 'edge_follow' : 'edge_followed_by'];
   if (!isObject(page)
     || typeof page.count !== 'number'
     || !Number.isFinite(page.count)
@@ -74,14 +79,14 @@ export function parseFollowingPage(payload: unknown): FollowingPage {
     || !isObject(page.page_info)
     || typeof page.page_info.has_next_page !== 'boolean'
     || (page.page_info.end_cursor !== null && typeof page.page_info.end_cursor !== 'string')) {
-    throw new Error('The following-list response format has changed.');
+    throw new Error(`The ${kind}-list response format has changed.`);
   }
 
   const accounts = page.edges.map(edge => {
     if (!isObject(edge)) {
       throw new Error('The response contains an invalid entry.');
     }
-    return parseAccount(edge.node);
+    return parseAccount(edge.node, kind);
   });
 
   return {
@@ -93,15 +98,23 @@ export function parseFollowingPage(payload: unknown): FollowingPage {
   };
 }
 
+export function parseFollowingPage(payload: unknown): AccountPage {
+  return parseAccountPage(payload, 'following');
+}
+
+export function parseFollowersPage(payload: unknown): AccountPage {
+  return parseAccountPage(payload, 'followers');
+}
+
 /**
- * Loads every following page up to a fixed ceiling and deduplicates accounts by ID.
+ * Loads every account page up to a fixed ceiling and deduplicates accounts by ID.
  *
  * @param loadPage Request boundary supplied by the caller.
  * @param signal Cancels the current request and the remaining pagination.
  * @param options Page ceiling and optional progress callback.
  * @throws {Error} When loading fails or the page ceiling is reached.
  */
-export async function scanFollowing(
+export async function scanAccounts(
   loadPage: PageLoader,
   signal: AbortSignal,
   options: ScanOptions = {},

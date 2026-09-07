@@ -1,4 +1,4 @@
-import { runSequential, scanFollowing, wait, type Account } from './core';
+import { runSequential, scanAccounts, wait, type Account, type ListKind } from './core';
 import { format, resolveLocale, translations, type Copy, type CopyKey, type Locale } from './i18n';
 import { InstagramGateway } from './instagram';
 import logoUrl from './logo.png';
@@ -13,8 +13,14 @@ const previewMode = ['localhost', '127.0.0.1', '::1'].includes(location.hostname
 const instagramHost = location.hostname === 'instagram.com' || location.hostname.endsWith('.instagram.com');
 
 type Mode = 'idle' | 'scanning' | 'ready' | 'running' | 'error';
-type View = 'nonfollowers' | 'all' | 'protected';
+type View = 'nonmutual' | 'all' | 'protected';
 type Theme = 'light' | 'dark';
+
+interface WorkspaceState {
+  accounts: readonly Account[];
+  readonly selected: Set<string>;
+  readonly results: Map<string, 'ok' | 'error'>;
+}
 
 function start(): void {
   const host = document.createElement('div');
@@ -28,17 +34,20 @@ function start(): void {
 
   const gateway = new InstagramGateway();
   let mode: Mode = 'idle';
-  let view: View = 'nonfollowers';
-  let accounts: readonly Account[] = [];
+  let listKind: ListKind = 'following';
+  let view: View = 'nonmutual';
   let query = '';
   let progress = 0;
   let statusKey: CopyKey = 'status_ready';
   let statusValues: Record<string, string | number> = {};
   let controller: AbortController | undefined;
   let confirmedQueue: readonly Account[] = [];
-  const selected = new Set<string>();
+  let confirmedList: ListKind = 'following';
   const protectedIds = loadProtected();
-  const results = new Map<string, 'ok' | 'error'>();
+  const workspaces: Record<ListKind, WorkspaceState> = {
+    following: { accounts: [], selected: new Set(), results: new Map() },
+    followers: { accounts: [], selected: new Set(), results: new Map() },
+  };
 
   const get = <T extends Element>(selector: string): T => {
     const element = root.querySelector<T>(selector);
@@ -51,9 +60,11 @@ function start(): void {
     statusValues = values;
   };
   const visibleAccounts = (): readonly Account[] => {
+    const { accounts } = workspaces[listKind];
     const normalizedQuery = query.trim().toLocaleLowerCase(locale);
     return accounts.filter(account => {
-      if (view === 'nonfollowers' && account.followsYou) return false;
+      const mutual = listKind === 'following' ? account.followsYou : account.youFollow;
+      if (view === 'nonmutual' && mutual) return false;
       if (view === 'protected' && !protectedIds.has(account.id)) return false;
       return normalizedQuery === ''
         || account.username.toLocaleLowerCase(locale).includes(normalizedQuery)
@@ -87,9 +98,10 @@ function start(): void {
   };
 
   const render = (): void => {
+    const { accounts, selected, results } = workspaces[listKind];
     const visible = visibleAccounts();
     const locked = mode === 'scanning' || mode === 'running';
-    const nonfollowers = accounts.filter(account => !account.followsYou).length;
+    const nonmutual = accounts.filter(account => !(listKind === 'following' ? account.followsYou : account.youFollow)).length;
     const selectable = visible.filter(account => !protectedIds.has(account.id) && results.get(account.id) !== 'ok');
     const allVisibleSelected = selectable.length > 0 && selectable.every(account => selected.has(account.id));
     const hasAccounts = accounts.length > 0;
@@ -99,23 +111,35 @@ function start(): void {
     get<HTMLProgressElement>('#progress').value = progress;
     get<HTMLProgressElement>('#progress').style.visibility = progress === 0 || progress === 100 ? 'hidden' : 'visible';
     get<HTMLElement>('#total-count').textContent = String(accounts.length);
-    get<HTMLElement>('#nonfollowers-count').textContent = String(nonfollowers);
+    get<HTMLElement>('#nonmutual-count').textContent = String(nonmutual);
     get<HTMLElement>('#protected-count').textContent = String(protectedIds.size);
     get<HTMLElement>('#selection-count').textContent = selected.size === 0 ? text('selection_none') : text('selection_count', { count: selected.size });
-    get<HTMLElement>('#page-title').textContent = text(view === 'protected' ? 'protected_title' : 'review_title');
-    get<HTMLElement>('#page-body').textContent = text(view === 'protected' ? 'protected_body' : 'review_body');
+    get<HTMLElement>('#page-title').textContent = text(view === 'protected' ? 'protected_title' : `${listKind}_title`);
+    get<HTMLElement>('#page-body').textContent = text(view === 'protected' ? 'protected_body' : `${listKind}_body`);
     get<HTMLButtonElement>('#scan').disabled = locked;
     get<HTMLElement>('#scan-label').textContent = text(hasAccounts ? 'refresh' : 'audit');
     get<HTMLButtonElement>('#run').disabled = locked || selected.size === 0;
-    get<HTMLElement>('#run-label').textContent = text('review_changes', { count: selected.size });
+    get<HTMLElement>('#run-label').textContent = text(listKind === 'following' ? 'review_unfollow' : 'review_remove', { count: selected.size });
     get<HTMLButtonElement>('#cancel').hidden = !locked;
     get<HTMLButtonElement>('#select-visible').disabled = locked || selectable.length === 0;
     get<HTMLElement>('#select-visible-label').textContent = text(allVisibleSelected ? 'clear_visible' : 'select_visible');
     get<HTMLButtonElement>('#export').disabled = !hasAccounts;
     get<HTMLInputElement>('#search').disabled = locked;
     get<HTMLElement>('#sidebar-summary').hidden = !hasAccounts;
-    get<HTMLButtonElement>('#nav-review').dataset.active = String(view !== 'protected');
+    root.querySelectorAll<HTMLButtonElement>('[data-list]').forEach(button => {
+      const active = button.dataset.list === listKind;
+      button.dataset.active = String(active && view !== 'protected');
+      button.setAttribute('aria-selected', String(active));
+      button.disabled = locked;
+    });
     get<HTMLButtonElement>('#nav-protected').dataset.active = String(view === 'protected');
+    get<HTMLElement>('#total-label').textContent = text(listKind);
+    get<HTMLElement>('#nonmutual-label').textContent = text(listKind === 'following' ? 'view_nonfollowers' : 'view_not_followed');
+    get<HTMLElement>('#relationship-label').textContent = text(listKind === 'following' ? 'following_you' : 'you_follow');
+    get<HTMLButtonElement>('[data-view="nonmutual"]').textContent = text(listKind === 'following' ? 'view_nonfollowers' : 'view_not_followed');
+    get<HTMLElement>('#safety-title').textContent = text('safety_title');
+    get<HTMLElement>('#safety-body').textContent = text('safety_body');
+    get<HTMLElement>('#selection-context').textContent = text(`${listKind}_body`);
     root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(button => {
       const active = button.dataset.view === view;
       button.dataset.active = String(active);
@@ -126,6 +150,7 @@ function start(): void {
   };
 
   const renderList = (visible: readonly Account[], locked: boolean): void => {
+    const { accounts, selected, results } = workspaces[listKind];
     const list = get<HTMLElement>('#accounts');
     list.replaceChildren();
     if (visible.length === 0) {
@@ -180,11 +205,12 @@ function start(): void {
       const mobileHandle = document.createElement('span');
       mobileHandle.className = 'mobile-handle'; mobileHandle.textContent = `@${account.username}`;
       const badges = document.createElement('small');
-      badges.textContent = [account.isPrivate ? text('private') : '', account.isVerified ? text('verified') : '', results.get(account.id) === 'ok' ? text('unfollowed') : '', results.get(account.id) === 'error' ? text('failed') : ''].filter(Boolean).join(' · ');
+      badges.textContent = [account.isPrivate ? text('private') : '', account.isVerified ? text('verified') : '', results.get(account.id) === 'ok' ? text(listKind === 'following' ? 'unfollowed' : 'removed') : '', results.get(account.id) === 'error' ? text('failed') : ''].filter(Boolean).join(' · ');
       identity.append(name, mobileHandle, badges); accountCell.append(avatar, identity);
 
       const handle = document.createElement('span'); handle.className = 'handle'; handle.textContent = `@${account.username}`;
-      const follows = document.createElement('span'); follows.className = account.followsYou ? 'follows yes' : 'follows no'; follows.textContent = text(account.followsYou ? 'yes' : 'no');
+      const relationship = listKind === 'following' ? account.followsYou : account.youFollow;
+      const follows = document.createElement('span'); follows.className = relationship ? 'follows yes' : 'follows no'; follows.textContent = text(relationship ? 'yes' : 'no');
       const protect = document.createElement('button');
       protect.className = 'protect'; protect.type = 'button'; protect.disabled = locked; protect.dataset.active = String(protectedIds.has(account.id));
       protect.innerHTML = `${icon(protectedIds.has(account.id) ? 'shield-check' : 'shield')}<span></span>`;
@@ -203,14 +229,15 @@ function start(): void {
   };
 
   const scan = async (): Promise<void> => {
-    controller = new AbortController(); mode = 'scanning'; progress = 1; results.clear(); selected.clear();
+    const workspace = workspaces[listKind];
+    controller = new AbortController(); mode = 'scanning'; progress = 1; workspace.results.clear(); workspace.selected.clear();
     setStatus(previewMode ? 'status_preview_loading' : 'status_loading'); render();
     try {
-      accounts = previewMode ? await previewAccounts(controller.signal) : await scanFollowing(
-        (cursor, signal) => gateway.loadFollowing(cursor, signal), controller.signal,
+      workspace.accounts = previewMode ? await previewAccounts(listKind, controller.signal) : await scanAccounts(
+        (cursor, signal) => listKind === 'following' ? gateway.loadFollowing(cursor, signal) : gateway.loadFollowers(cursor, signal), controller.signal,
         { onProgress: (loaded, total) => { progress = total > 0 ? Math.min(99, Math.round((loaded / total) * 100)) : 1; setStatus('status_loading_progress', { loaded, total }); render(); } },
       );
-      mode = 'ready'; progress = 100; setStatus('status_complete', { count: accounts.length });
+      mode = 'ready'; progress = 100; setStatus('status_complete', { count: workspace.accounts.length });
     } catch {
       const aborted = controller.signal.aborted; mode = aborted ? 'idle' : 'error'; progress = 0;
       setStatus(aborted ? 'status_cancelled' : 'unexpected_error');
@@ -218,10 +245,12 @@ function start(): void {
   };
 
   const openConfirmation = (): void => {
+    const { accounts, selected } = workspaces[listKind];
     confirmedQueue = accounts.filter(account => selected.has(account.id) && !protectedIds.has(account.id));
+    confirmedList = listKind;
     if (confirmedQueue.length === 0) return;
-    get<HTMLElement>('#confirm-body').textContent = text('confirm_body', { count: confirmedQueue.length });
-    get<HTMLElement>('#confirm-action-label').textContent = text('confirm_action', { count: confirmedQueue.length });
+    get<HTMLElement>('#confirm-body').textContent = text(listKind === 'following' ? 'confirm_unfollow_body' : 'confirm_remove_body', { count: confirmedQueue.length });
+    get<HTMLElement>('#confirm-action-label').textContent = text(listKind === 'following' ? 'confirm_unfollow' : 'confirm_remove', { count: confirmedQueue.length });
     const rows = confirmedQueue.slice(0, 8).map(account => {
       const row = document.createElement('div'); row.className = 'confirm-account';
       const avatar = document.createElement('img'); avatar.src = account.avatarUrl; avatar.alt = '';
@@ -237,11 +266,14 @@ function start(): void {
   const runConfirmed = async (): Promise<void> => {
     const queue = confirmedQueue;
     if (queue.length === 0) return;
+    const { selected, results } = workspaces[confirmedList];
     const delaySeconds = numberInput(get<HTMLInputElement>('#delay'), 2, 120, 4);
     const batchMinutes = numberInput(get<HTMLInputElement>('#batch-delay'), 1, 30, 5);
     controller = new AbortController(); mode = 'running'; progress = 1; setStatus('status_queue'); render();
     try {
-      await runSequential(queue, (account, signal) => previewMode ? wait(250, signal) : gateway.unfollow(account.id, signal), controller.signal, {
+      await runSequential(queue, (account, signal) => previewMode
+        ? wait(250, signal)
+        : confirmedList === 'following' ? gateway.unfollow(account.id, signal) : gateway.removeFollower(account.id, signal), controller.signal, {
         delayMs: delaySeconds * 1_000, batchSize: 5, batchDelayMs: batchMinutes * 60_000,
         onResult: (account, ok, completed, total) => { results.set(account.id, ok ? 'ok' : 'error'); selected.delete(account.id); progress = Math.round((completed / total) * 100); setStatus('status_queue_progress', { completed, total }); render(); },
       });
@@ -252,6 +284,12 @@ function start(): void {
   };
 
   const setView = (next: View): void => { view = next; render(); };
+  const setList = (next: ListKind): void => {
+    listKind = next; view = 'nonmutual'; query = ''; get<HTMLInputElement>('#search').value = '';
+    progress = workspaces[next].accounts.length > 0 ? 100 : 0;
+    setStatus(workspaces[next].accounts.length > 0 ? 'status_complete' : 'status_ready', { count: workspaces[next].accounts.length });
+    render();
+  };
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key === 'Escape' && get<HTMLDetailsElement>('#language-menu').open) {
       get<HTMLDetailsElement>('#language-menu').open = false; get<HTMLElement>('#language-summary').focus();
@@ -265,6 +303,7 @@ function start(): void {
   get<HTMLButtonElement>('#run').addEventListener('click', openConfirmation);
   get<HTMLButtonElement>('#confirm-action').addEventListener('click', () => { get<HTMLDialogElement>('#confirm-dialog').close(); void runConfirmed(); });
   get<HTMLButtonElement>('#select-visible').addEventListener('click', () => {
+    const { selected, results } = workspaces[listKind];
     const selectable = visibleAccounts().filter(account => !protectedIds.has(account.id) && results.get(account.id) !== 'ok');
     const allSelected = selectable.length > 0 && selectable.every(account => selected.has(account.id));
     for (const account of selectable) { if (allSelected) selected.delete(account.id); else selected.add(account.id); }
@@ -273,7 +312,7 @@ function start(): void {
   get<HTMLButtonElement>('#export').addEventListener('click', () => exportCsv(visibleAccounts()));
   get<HTMLInputElement>('#search').addEventListener('input', event => { query = (event.currentTarget as HTMLInputElement).value; render(); });
   root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(button => button.addEventListener('click', () => setView(button.dataset.view as View)));
-  get<HTMLButtonElement>('#nav-review').addEventListener('click', () => setView('nonfollowers'));
+  root.querySelectorAll<HTMLButtonElement>('[data-list]').forEach(button => button.addEventListener('click', () => setList(button.dataset.list as ListKind)));
   get<HTMLButtonElement>('#nav-protected').addEventListener('click', () => setView('protected'));
   get<HTMLButtonElement>('#nav-settings').addEventListener('click', () => get<HTMLDialogElement>('#settings-dialog').showModal());
   root.querySelectorAll<HTMLButtonElement>('[data-close-dialog]').forEach(button => button.addEventListener('click', () => button.closest('dialog')?.close()));
@@ -320,12 +359,12 @@ function exportCsv(accounts: readonly Account[]): void {
   const cell = (value: string | boolean): string => {
     const raw = String(value); const safe = /^[=+\-@]/.test(raw) ? `'${raw}` : raw; return `"${safe.replace(/"/g, '""')}"`;
   };
-  const rows = accounts.map(account => [account.id, account.username, account.name, account.followsYou, account.isPrivate, account.isVerified].map(cell).join(','));
-  const url = URL.createObjectURL(new Blob([['id,username,name,follows_you,private,verified', ...rows].join('\n')], { type: 'text/csv;charset=utf-8' }));
+  const rows = accounts.map(account => [account.id, account.username, account.name, account.followsYou, account.youFollow, account.isPrivate, account.isVerified].map(cell).join(','));
+  const url = URL.createObjectURL(new Blob([['id,username,name,follows_you,you_follow,private,verified', ...rows].join('\n')], { type: 'text/csv;charset=utf-8' }));
   const anchor = document.createElement('a'); anchor.href = url; anchor.download = `follow-audit-${new Date().toISOString().slice(0, 10)}.csv`; anchor.click(); URL.revokeObjectURL(url);
 }
 
-async function previewAccounts(signal: AbortSignal): Promise<readonly Account[]> {
+async function previewAccounts(kind: ListKind, signal: AbortSignal): Promise<readonly Account[]> {
   await wait(500, signal);
   const base = new URL('./avatars/', location.href);
   return [
@@ -334,7 +373,8 @@ async function previewAccounts(signal: AbortSignal): Promise<readonly Account[]>
     ['105', 'masonlee', 'Mason Lee', false, false, false, 'mason-lee.png'], ['106', 'sophiedubois', 'Sophie Dubois', true, true, false, 'sophie-dubois.png'],
   ].map(([id, username, name, followsYou, isPrivate, isVerified, avatar]) => ({
     id: String(id), username: String(username), name: String(name), avatarUrl: new URL(String(avatar), base).href,
-    followsYou: Boolean(followsYou), isPrivate: Boolean(isPrivate), isVerified: Boolean(isVerified),
+    followsYou: kind === 'followers' || Boolean(followsYou), youFollow: kind === 'following' || Boolean(followsYou),
+    isPrivate: Boolean(isPrivate), isVerified: Boolean(isVerified),
   }));
 }
 
@@ -344,11 +384,12 @@ function layout(copy: Copy, locale: Locale, theme: Theme): string {
     <aside class="sidebar">
       <div class="brand"><img src="${logoUrl}" alt=""><strong>Follow Audit</strong></div>
       <nav aria-label="Follow Audit">
-        <button id="nav-review" type="button" data-active="true" data-copy-aria="review" aria-label="${copy.review}">${icon('review')}<span data-copy="review">${copy.review}</span></button>
+        <button type="button" data-list="following" data-active="true" data-copy-aria="following" aria-label="${copy.following}">${icon('review')}<span data-copy="following">${copy.following}</span></button>
+        <button type="button" data-list="followers" data-copy-aria="followers" aria-label="${copy.followers}">${icon('followers')}<span data-copy="followers">${copy.followers}</span></button>
         <button id="nav-protected" type="button" data-copy-aria="protected" aria-label="${copy.protected}">${icon('shield')}<span data-copy="protected">${copy.protected}</span></button>
         <button id="nav-settings" type="button" data-copy-aria="settings" aria-label="${copy.settings}">${icon('settings')}<span data-copy="settings">${copy.settings}</span></button>
       </nav>
-      <section id="sidebar-summary" class="sidebar-summary" hidden><div><strong id="total-count">0</strong><span data-copy="total_label">${copy.total_label}</span></div><div><strong id="nonfollowers-count">0</strong><span data-copy="nonfollowers_label">${copy.nonfollowers_label}</span></div><div><strong id="protected-count">0</strong><span data-copy="protected_label">${copy.protected_label}</span></div></section>
+      <section id="sidebar-summary" class="sidebar-summary" hidden><div><strong id="total-count">0</strong><span id="total-label">${copy.following}</span></div><div><strong id="nonmutual-count">0</strong><span id="nonmutual-label">${copy.view_nonfollowers}</span></div><div><strong id="protected-count">0</strong><span data-copy="protected_label">${copy.protected_label}</span></div></section>
       <div class="local-note"><span class="local-dot"></span><div><strong data-copy="privacy_title">${copy.privacy_title}</strong><small data-copy="privacy_body">${copy.privacy_body}</small></div></div><span class="route-line" aria-hidden="true"></span>
     </aside>
     <section class="shell">
@@ -365,26 +406,27 @@ function layout(copy: Copy, locale: Locale, theme: Theme): string {
         </div>
       </header><progress id="progress" max="100" value="0" style="visibility:hidden"></progress>
       <main class="workspace">
-        <section class="page-heading"><div><h1 id="page-title">${copy.review_title}</h1><p id="page-body">${copy.review_body}</p></div><div class="scan-actions"><button id="cancel" class="secondary danger" type="button" hidden><span data-copy="cancel">${copy.cancel}</span></button><button id="scan" class="primary" type="button">${icon('scan')}<span id="scan-label">${copy.audit}</span></button></div></section>
+        <section class="page-heading"><div><h1 id="page-title">${copy.following_title}</h1><p id="page-body">${copy.following_body}</p></div><div class="scan-actions"><button id="cancel" class="secondary danger" type="button" hidden><span data-copy="cancel">${copy.cancel}</span></button><button id="scan" class="primary" type="button">${icon('scan')}<span id="scan-label">${copy.audit}</span></button></div></section>
         <section class="toolbar" aria-label="Account controls">
+          <div class="list-switch" role="tablist"><button type="button" role="tab" data-list="following" data-copy="following">${copy.following}</button><button type="button" role="tab" data-list="followers" data-copy="followers">${copy.followers}</button></div>
           <label class="search">${icon('search')}<span class="sr-only" data-copy="search">${copy.search}</span><input id="search" type="search" data-copy-placeholder="search" placeholder="${copy.search}"></label>
-          <div class="view-switch" role="group" aria-label="View"><button type="button" data-view="nonfollowers" data-copy="view_nonfollowers">${copy.view_nonfollowers}</button><button type="button" data-view="all" data-copy="view_all">${copy.view_all}</button><button type="button" data-view="protected" data-copy="view_protected">${copy.view_protected}</button></div>
+          <div class="view-switch" role="group" aria-label="View"><button type="button" data-view="nonmutual">${copy.view_nonfollowers}</button><button type="button" data-view="all" data-copy="view_all">${copy.view_all}</button><button type="button" data-view="protected" data-copy="view_protected">${copy.view_protected}</button></div>
           <span class="toolbar-spacer"></span><button id="select-visible" class="secondary" type="button">${icon('select')}<span id="select-visible-label">${copy.select_visible}</span></button><button id="export" class="secondary" type="button">${icon('download')}<span data-copy="export">${copy.export}</span></button>
         </section>
-        <section class="table" role="table" aria-label="Accounts"><div class="table-head" role="row"><span></span><span data-copy="account">${copy.account}</span><span data-copy="username">${copy.username}</span><span data-copy="following_you">${copy.following_you}</span><span data-copy="protection">${copy.protection}</span></div><div id="accounts" class="accounts" aria-live="polite"></div></section>
+        <section class="table" role="table" aria-label="Accounts"><div class="table-head" role="row"><span></span><span data-copy="account">${copy.account}</span><span data-copy="username">${copy.username}</span><span id="relationship-label">${copy.following_you}</span><span data-copy="protection">${copy.protection}</span></div><div id="accounts" class="accounts" aria-live="polite"></div></section>
       </main>
-      <footer class="actionbar"><div class="safety-mark">${icon('shield')}</div><div class="safety-copy"><strong data-copy="safety_title">${copy.safety_title}</strong><span data-copy="safety_body">${copy.safety_body}</span></div><div class="selection"><strong id="selection-count">${copy.selection_none}</strong><span data-copy="review_body">${copy.review_body}</span></div><button id="run" class="primary action" type="button" disabled><span id="run-label">${format(copy, 'review_changes', { count: 0 })}</span>${icon('arrow')}</button></footer>
+      <footer class="actionbar"><div class="safety-mark">${icon('shield')}</div><div class="safety-copy"><strong id="safety-title">${copy.safety_title}</strong><span id="safety-body">${copy.safety_body}</span></div><div class="selection"><strong id="selection-count">${copy.selection_none}</strong><span id="selection-context">${copy.following_body}</span></div><button id="run" class="primary action" type="button" disabled><span id="run-label">${format(copy, 'review_unfollow', { count: 0 })}</span>${icon('arrow')}</button></footer>
     </section>
     <dialog id="settings-dialog" class="dialog side-dialog"><form method="dialog" class="dialog-panel"><header><div><h2 data-copy="settings_title">${copy.settings_title}</h2><p data-copy="settings_body">${copy.settings_body}</p></div><button type="submit" class="icon-button" data-close-dialog data-copy-aria="close" aria-label="${copy.close}">${icon('close')}</button></header><div class="setting-row"><label for="delay" data-copy="delay_label">${copy.delay_label}</label><div><input id="delay" type="number" min="2" max="120" value="4"><span data-copy="delay_unit">${copy.delay_unit}</span></div></div><div class="setting-row"><label for="batch-delay" data-copy="batch_label">${copy.batch_label}</label><div><input id="batch-delay" type="number" min="1" max="30" value="5"><span data-copy="batch_unit">${copy.batch_unit}</span></div></div><p class="notice">${icon('info')}<span data-copy="limits_notice">${copy.limits_notice}</span></p><button type="submit" class="primary full" data-close-dialog data-copy="done">${copy.done}</button></form></dialog>
     <dialog id="confirm-dialog" class="dialog confirm-dialog"><section class="dialog-panel"><header><div><span class="dialog-icon">${icon('shield')}</span><h2 data-copy="confirm_title">${copy.confirm_title}</h2><p id="confirm-body"></p></div><button type="button" class="icon-button" data-close-dialog data-copy-aria="close" aria-label="${copy.close}">${icon('close')}</button></header><p class="list-label" data-copy="confirm_list">${copy.confirm_list}</p><div id="confirm-accounts" class="confirm-accounts"></div><footer><button type="button" class="secondary" data-close-dialog data-copy="confirm_cancel">${copy.confirm_cancel}</button><button id="confirm-action" type="button" class="primary danger-primary"><span id="confirm-action-label"></span>${icon('arrow')}</button></footer></section></dialog>
   </div>`;
 }
 
-type IconName = 'arrow' | 'check' | 'chevron' | 'close' | 'download' | 'globe' | 'info' | 'moon' | 'review' | 'scan' | 'search' | 'select' | 'settings' | 'shield' | 'shield-check' | 'sun';
+type IconName = 'arrow' | 'check' | 'chevron' | 'close' | 'download' | 'followers' | 'globe' | 'info' | 'moon' | 'review' | 'scan' | 'search' | 'select' | 'settings' | 'shield' | 'shield-check' | 'sun';
 function icon(name: IconName): string {
   const paths: Record<IconName, string> = {
     arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>', check: '<path d="m5 12 4 4L19 6"/>', chevron: '<path d="m8 10 4 4 4-4"/>', close: '<path d="M6 6l12 12M18 6 6 18"/>',
-    download: '<path d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14"/>', globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.4 3 14.6 0 18M12 3c-3 3.4-3 14.6 0 18"/>', info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/>', moon: '<path d="M20 15.2A8 8 0 0 1 8.8 4a8.5 8.5 0 1 0 11.2 11.2Z"/>',
+    download: '<path d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14"/>', followers: '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6M16 11h6"/>', globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.4 3 14.6 0 18M12 3c-3 3.4-3 14.6 0 18"/>', info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/>', moon: '<path d="M20 15.2A8 8 0 0 1 8.8 4a8.5 8.5 0 1 0 11.2 11.2Z"/>',
     review: '<path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM17 11l2 2 4-4"/>', scan: '<path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3M7 12h10"/>', search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>', select: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8 12 3 3 5-6"/>',
     settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/>',
     shield: '<path d="M12 22s8-3.7 8-10V5l-8-3-8 3v7c0 6.3 8 10 8 10Z"/>', 'shield-check': '<path d="M12 22s8-3.7 8-10V5l-8-3-8 3v7c0 6.3 8 10 8 10Z"/><path d="m8.5 12 2.2 2.2 4.8-5"/>', sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
@@ -417,6 +459,7 @@ const styles = `
   .workspace{min-height:0;overflow:auto;padding:48px clamp(26px,4vw,62px) 32px}.page-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:30px;margin-bottom:36px}.page-heading h1{margin:0;color:var(--text);font-size:clamp(34px,4vw,46px);line-height:1.05;letter-spacing:-.048em}.page-heading p{margin:12px 0 0;color:var(--muted);font-size:16px}.scan-actions{display:flex;gap:9px}
   .primary,.secondary,.protect{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:42px;border-radius:8px;padding:0 16px;font-weight:680;transition:border-color .15s ease,background .15s ease,transform .15s ease}.primary{border:1px solid var(--cyan);color:#fff;background:var(--navy)}.primary:hover:not(:disabled){transform:translateY(-1px);background:var(--navy2)}.secondary,.protect{border:1px solid var(--border);color:var(--text);background:var(--surface)}.secondary:hover:not(:disabled),.protect:hover:not(:disabled){border-color:var(--strong);background:var(--subtle)}.secondary.danger{color:var(--negative)}
   .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:18px}.search{position:relative;display:flex;align-items:center;width:min(330px,31vw)}.search>svg{position:absolute;left:13px;width:18px;color:var(--quiet);pointer-events:none}.search input{width:100%;height:44px;border:1px solid var(--border);border-radius:8px;padding:0 14px 0 42px;color:var(--text);background:var(--surface)}.search input::placeholder{color:var(--quiet)}
+  .list-switch{display:flex;align-items:center;padding:3px;border:1px solid var(--border);border-radius:9px;background:var(--surface)}.list-switch button{min-height:36px;border:0;border-radius:6px;padding:0 14px;color:var(--muted);background:transparent;font-weight:680}.list-switch button[data-active=true]{color:#fff;background:var(--navy)}
   .view-switch{display:flex;align-items:center;padding:3px;border:1px solid var(--border);border-radius:9px;background:var(--subtle)}.view-switch button{min-height:36px;border:0;border-radius:6px;padding:0 12px;color:var(--muted);background:transparent;font-size:12px;font-weight:630}.view-switch button[data-active=true]{color:var(--text);background:var(--surface);box-shadow:0 1px 3px rgba(5,23,42,.08)}.toolbar-spacer{flex:1}.toolbar .secondary{min-height:44px;white-space:nowrap}.toolbar .secondary svg{width:17px}
   .table{overflow:hidden;border:1px solid var(--border);border-radius:10px;background:var(--surface)}.table-head,.account-row{display:grid;grid-template-columns:42px minmax(190px,1.2fr) minmax(140px,1fr) 150px 160px;align-items:center;column-gap:14px}.table-head{min-height:48px;padding:0 18px;border-bottom:1px solid var(--border);color:var(--muted);background:var(--subtle);font-size:11px;font-weight:720;letter-spacing:.055em;text-transform:uppercase}
   .account-row{min-height:76px;padding:10px 18px;border-bottom:1px solid var(--border);transition:background .15s ease}.account-row:last-child{border-bottom:0}.account-row:hover{background:var(--subtle)}.account-row[data-selected=true]{background:var(--active)}.account-row[data-result=ok]{opacity:.56}.account-row[data-result=error]{box-shadow:inset 3px 0 var(--negative)}

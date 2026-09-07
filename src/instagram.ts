@@ -1,6 +1,7 @@
-import { parseFollowingPage, wait, type FollowingPage } from './core';
+import { parseFollowersPage, parseFollowingPage, wait, type AccountPage } from './core';
 
 const FOLLOWING_QUERY = '3dec7e2c57367ef3da3d987d89f9dbc8';
+const FOLLOWERS_QUERY = 'c76146de99bb02f6415203be841dd25a';
 
 class HttpError extends Error {
   constructor(readonly status: number) {
@@ -14,7 +15,7 @@ function cookie(name: string): string | undefined {
   return part ? decodeURIComponent(part.slice(prefix.length)) : undefined;
 }
 
-function followingUrl(cursor: string | undefined): URL {
+function listUrl(queryHash: string, cursor: string | undefined): URL {
   const userId = cookie('ds_user_id');
   if (!userId || !/^\d+$/.test(userId)) {
     throw new Error('The current Instagram session could not be identified.');
@@ -31,7 +32,7 @@ function followingUrl(cursor: string | undefined): URL {
   }
 
   const url = new URL('/graphql/query/', location.origin);
-  url.searchParams.set('query_hash', FOLLOWING_QUERY);
+  url.searchParams.set('query_hash', queryHash);
   url.searchParams.set('variables', JSON.stringify(variables));
   return url;
 }
@@ -48,10 +49,24 @@ async function request(url: URL | string, init: RequestInit, timeoutMs = 15_000)
 /** Authenticated request boundary for the private Instagram web endpoints used by Follow Audit. */
 export class InstagramGateway {
   /** Loads one validated page of accounts followed by the current user. */
-  async loadFollowing(cursor: string | undefined, signal: AbortSignal): Promise<FollowingPage> {
+  async loadFollowing(cursor: string | undefined, signal: AbortSignal): Promise<AccountPage> {
+    return this.loadList(FOLLOWING_QUERY, cursor, signal, parseFollowingPage);
+  }
+
+  /** Loads one validated page of accounts following the current user. */
+  async loadFollowers(cursor: string | undefined, signal: AbortSignal): Promise<AccountPage> {
+    return this.loadList(FOLLOWERS_QUERY, cursor, signal, parseFollowersPage);
+  }
+
+  private async loadList(
+    queryHash: string,
+    cursor: string | undefined,
+    signal: AbortSignal,
+    parse: (payload: unknown) => AccountPage,
+  ): Promise<AccountPage> {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        const response = await request(followingUrl(cursor), {
+        const response = await request(listUrl(queryHash, cursor), {
           method: 'GET',
           credentials: 'include',
           headers: { accept: 'application/json' },
@@ -60,7 +75,7 @@ export class InstagramGateway {
         if (!response.ok) {
           throw new HttpError(response.status);
         }
-        return parseFollowingPage(await response.json());
+        return parse(await response.json());
       } catch (error) {
         if (signal.aborted) {
           throw error;
@@ -75,8 +90,17 @@ export class InstagramGateway {
     throw new Error('The accounts could not be loaded.');
   }
 
+  /** Removes one follower without retrying the destructive request. */
+  async removeFollower(accountId: string, signal: AbortSignal): Promise<void> {
+    await this.changeRelationship(accountId, 'remove_follower', signal);
+  }
+
   /** Performs one unfollow request without retrying it. */
   async unfollow(accountId: string, signal: AbortSignal): Promise<void> {
+    await this.changeRelationship(accountId, 'unfollow', signal);
+  }
+
+  private async changeRelationship(accountId: string, action: 'remove_follower' | 'unfollow', signal: AbortSignal): Promise<void> {
     if (!/^\d+$/.test(accountId)) {
       throw new Error('Invalid account ID.');
     }
@@ -85,7 +109,7 @@ export class InstagramGateway {
       throw new Error('The current session has no CSRF token.');
     }
 
-    const response = await request(`/web/friendships/${encodeURIComponent(accountId)}/unfollow/`, {
+    const response = await request(`/web/friendships/${encodeURIComponent(accountId)}/${action}/`, {
       method: 'POST',
       credentials: 'include',
       headers: {

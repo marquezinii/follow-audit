@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { parseFollowingPage, runSequential, scanFollowing, type Account } from '../src/core';
+import { parseFollowersPage, parseFollowingPage, runSequential, scanAccounts, type Account } from '../src/core';
 import { format, resolveLocale, translations } from '../src/i18n';
 
 const account = (id: string): Account => ({
@@ -11,6 +11,7 @@ const account = (id: string): Account => ({
   isPrivate: false,
   isVerified: false,
   followsYou: false,
+  youFollow: true,
 });
 
 void test('parses valid pages and rejects malformed responses', () => {
@@ -38,9 +39,29 @@ void test('parses valid pages and rejects malformed responses', () => {
   assert.throws(() => parseFollowingPage({ data: { user: {} } }));
 });
 
+void test('parses followers and records whether you follow them back', () => {
+  const result = parseFollowersPage({
+    data: {
+      user: {
+        edge_followed_by: {
+          count: 1,
+          edges: [{ node: {
+            id: '11', username: 'account_11', full_name: 'Account 11', profile_pic_url: 'https://example.test/avatar.png',
+            is_private: false, is_verified: false, followed_by_viewer: false,
+          } }],
+          page_info: { has_next_page: false, end_cursor: null },
+        },
+      },
+    },
+  });
+
+  assert.equal(result.accounts[0]?.followsYou, true);
+  assert.equal(result.accounts[0]?.youFollow, false);
+});
+
 void test('deduplicates accounts across pages', async () => {
   let page = 0;
-  const result = await scanFollowing(() => {
+  const result = await scanAccounts(() => {
     page += 1;
     return Promise.resolve(page === 1
       ? { accounts: [account('1')], total: 2, nextCursor: 'next' }
@@ -80,5 +101,5 @@ void test('resolves supported locales and formats translated values', () => {
   assert.equal(resolveLocale(null, 'pt-PT'), 'pt-BR');
   assert.equal(resolveLocale('fr', 'en-US'), 'fr');
   assert.equal(resolveLocale('unknown', 'it-IT'), 'en');
-  assert.equal(format(translations.de, 'review_changes', { count: 3 }), 'Auswahl prüfen · 3');
+  assert.equal(format(translations.de, 'review_remove', { count: 3 }), 'Entfernungen prüfen · 3');
 });

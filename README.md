@@ -5,7 +5,7 @@
 <h1 align="center">Follow Audit</h1>
 
 <p align="center">
-  A focused, local-first workspace for reviewing the accounts you follow on Instagram.
+  A focused, local-first workspace for reviewing who you follow and who follows you on Instagram.
   <br>
   Inspect first. Protect what matters. Act only when you are ready.
 </p>
@@ -23,7 +23,7 @@
 
 ---
 
-Follow Audit runs entirely inside your browser session. It scans the accounts you follow, highlights people who do not follow you back, keeps a private protection list, and turns any unfollow operation into an explicit review process.
+Follow Audit runs entirely inside your browser session. It scans both sides of your Instagram connections, highlights non-mutual relationships, keeps a private protection list, and turns unfollows or follower removals into an explicit review process.
 
 No account data is sent to a project server. Session credentials are read only when a request needs them and are never stored by the application.
 
@@ -34,10 +34,10 @@ No account data is sent to a project server. Session credentials are read only w
 
 | Capability | Behavior |
 | --- | --- |
-| Following audit | Loads the authenticated account's following list page by page and deduplicates results. |
-| Focused review | Starts with accounts that do not follow you back, with search and alternate views available. |
+| Following and follower audits | Loads either list page by page and deduplicates results. |
+| Focused review | Highlights accounts that do not follow you back or followers you do not follow back. |
 | Protected accounts | Stores protected account IDs locally and permanently excludes them from the action queue. |
-| Deliberate unfollowing | Requires confirmation, processes one account at a time, and supports cancellation. |
+| Deliberate actions | Unfollows accounts or removes followers only after confirmation, one at a time, with cancellation. |
 | Portable results | Exports the current review view as spreadsheet-safe CSV. |
 | Local preview | Uses deterministic sample data and never contacts Instagram during UI development. |
 
@@ -45,7 +45,7 @@ No account data is sent to a project server. Session credentials are read only w
 
 The destructive path is intentionally slower than the review path:
 
-- unfollow requests are never retried automatically;
+- unfollow and follower-removal requests are never retried automatically;
 - every run requires an explicit confirmation;
 - protected accounts cannot be selected;
 - the queue is sequential, cancellable, and delay-controlled;
@@ -59,7 +59,7 @@ The destructive path is intentionally slower than the review path:
 2. Select **Copy script**.
 3. Sign in to [Instagram](https://www.instagram.com/) in the same browser.
 4. Open your browser's Developer Tools, switch to **Console**, paste the script, and press <kbd>Enter</kbd>.
-5. Run the audit, review the results, protect important accounts, and select only the accounts you intend to unfollow.
+5. Choose **Following** or **Followers**, run the audit, and select only the accounts you intend to unfollow or remove.
 
 The bundle refuses to start outside `instagram.com`, except on localhost where it enters preview mode.
 
@@ -67,13 +67,13 @@ The bundle refuses to start outside `instagram.com`, except on localhost where i
 
 ```mermaid
 flowchart LR
-    A[Authenticated browser session] --> B[Paginated following scan]
+    A[Authenticated browser session] --> B[Paginated following or follower scan]
     B --> C[Runtime payload validation]
     C --> D[Local review workspace]
     D --> E{User decision}
     E -->|Protect| F[Local protected IDs]
     E -->|Export| G[CSV file]
-    E -->|Confirm unfollow| H[Sequential action queue]
+    E -->|Confirm unfollow or removal| H[Sequential action queue]
     H --> I[Success or failure per account]
 ```
 
@@ -95,7 +95,7 @@ npm ci
 npm run dev
 ```
 
-The local server opens at `http://127.0.0.1:8080/`. Preview mode uses sample accounts; it does not require a login and cannot perform a real unfollow.
+The local server opens at `http://127.0.0.1:8080/`. Preview mode uses sample accounts; it does not require a login and cannot perform a real unfollow or follower removal.
 
 ### Quality gate
 
@@ -123,8 +123,8 @@ scripts/             # build copy and local static server
 | Data | Handling |
 | --- | --- |
 | Session cookies | Read by the browser request boundary; never persisted by Follow Audit. |
-| CSRF token | Read immediately before an unfollow request; never exported or logged. |
-| Following list | Held in memory for the current run. |
+| CSRF token | Read immediately before an unfollow or follower-removal request; never exported or logged. |
+| Following and follower lists | Held in memory for the current run. |
 | Protected IDs | Stored only in the current browser's `localStorage`. |
 | Analytics | None. |
 | Project backend | None. |

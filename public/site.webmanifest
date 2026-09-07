@@ -1,7 +1,7 @@
 {
   "name": "Follow Audit",
   "short_name": "Follow Audit",
-  "description": "A local-first workspace for reviewing the accounts you follow on Instagram.",
+  "description": "A local-first workspace for reviewing your Instagram followers and following.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f7fafc",
