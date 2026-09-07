@@ -87,16 +87,18 @@ void test('stops when Instagram repeats a pagination cursor', async () => {
 
 void test('continues the queue after an individual failure', async () => {
   const outcomes: boolean[] = [];
+  const errors: unknown[] = [];
   await runSequential(['a', 'b', 'c'], item => {
     return item === 'b' ? Promise.reject(new Error('expected failure')) : Promise.resolve();
   }, new AbortController().signal, {
     delayMs: 0,
     batchSize: 5,
     batchDelayMs: 0,
-    onResult: (_item, ok) => outcomes.push(ok),
+    onResult: (_item, ok, _completed, _total, error) => { outcomes.push(ok); errors.push(error); },
   });
 
   assert.deepEqual(outcomes, [true, false, true]);
+  assert.match(String(errors[1]), /expected failure/);
 });
 
 void test('cancellation interrupts the queue delay', async () => {

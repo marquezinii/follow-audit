@@ -28,7 +28,7 @@ interface RunOptions<T> {
   readonly delayMs: number;
   readonly batchSize: number;
   readonly batchDelayMs: number;
-  readonly onResult?: (item: T, ok: boolean, completed: number, total: number) => void;
+  readonly onResult?: (item: T, ok: boolean, completed: number, total: number, error?: unknown) => void;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -185,17 +185,17 @@ export async function runSequential<T>(
       continue;
     }
 
-    let ok = true;
+    let error: unknown;
     try {
       await execute(item, signal);
-    } catch (error) {
+    } catch (caught) {
       if (signal.aborted) {
-        throw error;
+        throw caught;
       }
-      ok = false;
+      error = caught;
     }
 
-    options.onResult?.(item, ok, index + 1, items.length);
+    options.onResult?.(item, error === undefined, index + 1, items.length, error);
     if (index === items.length - 1) {
       continue;
     }

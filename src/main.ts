@@ -287,7 +287,10 @@ function start(): void {
         ? wait(250, signal)
         : confirmedList === 'following' ? gateway.unfollow(account.id, signal) : gateway.removeFollower(account.id, signal), controller.signal, {
         delayMs: delaySeconds * 1_000, batchSize: 5, batchDelayMs: batchMinutes * 60_000,
-        onResult: (account, ok, completed, total) => { results.set(account.id, ok ? 'ok' : 'error'); selected.delete(account.id); progress = Math.round((completed / total) * 100); setStatus('status_queue_progress', { completed, total }); render(); },
+        onResult: (account, ok, completed, total, error) => {
+          if (!ok) globalThis.console.error(`[Follow Audit] Failed for @${account.username}:`, error);
+          results.set(account.id, ok ? 'ok' : 'error'); selected.delete(account.id); progress = Math.round((completed / total) * 100); setStatus('status_queue_progress', { completed, total }); render();
+        },
       });
       setStatus('status_queue_complete');
     } catch {
