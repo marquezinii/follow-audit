@@ -19,7 +19,7 @@ type Theme = 'light' | 'dark';
 interface WorkspaceState {
   accounts: readonly Account[];
   readonly selected: Set<string>;
-  readonly results: Map<string, 'ok' | 'error'>;
+  readonly results: Map<string, string>;
 }
 
 function start(): void {
@@ -181,9 +181,10 @@ function start(): void {
 
     const fragment = document.createDocumentFragment();
     for (const account of visible) {
+      const result = results.get(account.id);
       const item = document.createElement('article');
       item.className = 'account-row';
-      item.dataset.result = results.get(account.id) ?? '';
+      item.dataset.result = result ? result === 'ok' ? 'ok' : 'error' : '';
       item.dataset.selected = String(selected.has(account.id));
       item.setAttribute('role', 'row');
 
@@ -213,7 +214,7 @@ function start(): void {
       const mobileHandle = document.createElement('span');
       mobileHandle.className = 'mobile-handle'; mobileHandle.textContent = `@${account.username}`;
       const badges = document.createElement('small');
-      badges.textContent = [account.isPrivate ? text('private') : '', account.isVerified ? text('verified') : '', results.get(account.id) === 'ok' ? text(listKind === 'following' ? 'unfollowed' : 'removed') : '', results.get(account.id) === 'error' ? text('failed') : ''].filter(Boolean).join(' · ');
+      badges.textContent = [account.isPrivate ? text('private') : '', account.isVerified ? text('verified') : '', result === 'ok' ? text(listKind === 'following' ? 'unfollowed' : 'removed') : '', result && result !== 'ok' ? `${text('failed')}: ${result}` : ''].filter(Boolean).join(' · ');
       identity.append(name, mobileHandle, badges); accountCell.append(avatar, identity);
 
       const handle = document.createElement('span'); handle.className = 'handle'; handle.textContent = `@${account.username}`;
@@ -289,7 +290,7 @@ function start(): void {
         delayMs: delaySeconds * 1_000, batchSize: 5, batchDelayMs: batchMinutes * 60_000,
         onResult: (account, ok, completed, total, error) => {
           if (!ok) globalThis.console.error(`[Follow Audit] Failed for @${account.username}:`, error);
-          results.set(account.id, ok ? 'ok' : 'error'); selected.delete(account.id); progress = Math.round((completed / total) * 100); setStatus('status_queue_progress', { completed, total }); render();
+          results.set(account.id, ok ? 'ok' : error instanceof Error ? error.message : String(error)); selected.delete(account.id); progress = Math.round((completed / total) * 100); setStatus('status_queue_progress', { completed, total }); render();
         },
       });
       setStatus('status_queue_complete');
