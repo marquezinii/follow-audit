@@ -116,16 +116,20 @@ void test('cancellation interrupts the queue delay', async () => {
 void test('identifies follower-removal requests as the Instagram web client', async () => {
   const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
   const originalFetch = globalThis.fetch;
+  let url: string | undefined;
   let headers: Headers | undefined;
 
   Object.defineProperty(globalThis, 'document', { configurable: true, value: { cookie: 'csrftoken=test-token' } });
-  globalThis.fetch = (_url, init) => {
+  globalThis.fetch = (input, init) => {
+    if (typeof input !== 'string') throw new Error('Expected a string URL.');
+    url = input;
     headers = new Headers(init?.headers);
     return Promise.resolve(new Response('', { status: 200 }));
   };
 
   try {
     await new InstagramGateway().removeFollower('12', new AbortController().signal);
+    assert.equal(url, '/api/v1/friendships/remove_follower/12/');
     assert.equal(headers?.get('x-ig-app-id'), '936619743392459');
     assert.equal(headers?.get('x-csrftoken'), 'test-token');
   } finally {

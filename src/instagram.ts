@@ -110,7 +110,11 @@ export class InstagramGateway {
       throw new Error('The current session has no CSRF token.');
     }
 
-    const response = await request(`/web/friendships/${encodeURIComponent(accountId)}/${action}/`, {
+    const encodedId = encodeURIComponent(accountId);
+    const url = action === 'remove_follower'
+      ? `/api/v1/friendships/remove_follower/${encodedId}/`
+      : `/web/friendships/${encodedId}/unfollow/`;
+    const response = await request(url, {
       method: 'POST',
       credentials: 'include',
       headers: {
