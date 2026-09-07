@@ -172,7 +172,7 @@ function start(): void {
       const accountCell = document.createElement('div');
       accountCell.className = 'account-cell';
       const avatar = document.createElement('img');
-      avatar.className = 'avatar'; avatar.src = account.avatarUrl; avatar.alt = ''; avatar.loading = 'lazy'; avatar.referrerPolicy = 'no-referrer';
+      avatar.className = 'avatar'; avatar.src = account.avatarUrl; avatar.alt = ''; avatar.loading = 'lazy';
       const identity = document.createElement('div');
       identity.className = 'identity';
       const name = document.createElement('a');
@@ -224,7 +224,7 @@ function start(): void {
     get<HTMLElement>('#confirm-action-label').textContent = text('confirm_action', { count: confirmedQueue.length });
     const rows = confirmedQueue.slice(0, 8).map(account => {
       const row = document.createElement('div'); row.className = 'confirm-account';
-      const avatar = document.createElement('img'); avatar.src = account.avatarUrl; avatar.alt = ''; avatar.referrerPolicy = 'no-referrer';
+      const avatar = document.createElement('img'); avatar.src = account.avatarUrl; avatar.alt = '';
       const label = document.createElement('span'); label.textContent = account.name || `@${account.username}`;
       const handle = document.createElement('small'); handle.textContent = `@${account.username}`;
       row.append(avatar, label, handle); return row;

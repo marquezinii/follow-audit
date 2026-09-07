@@ -11,6 +11,10 @@
 </p>
 
 <p align="center">
+  <a href="https://marquezinii.github.io/follow-audit/"><strong>Open Follow Audit &mdash; copy the script</strong></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/marquezinii/follow-audit/actions/workflows/ci.yml"><img alt="Quality" src="https://github.com/marquezinii/follow-audit/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/marquezinii/follow-audit/blob/main/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-123d4a.svg"></a>
   <img alt="Node.js 22" src="https://img.shields.io/badge/Node.js-22-5fa04e.svg">
