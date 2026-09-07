@@ -416,7 +416,7 @@ async function copyScript() {
     button.querySelector('[data-i18n]').textContent = copy.copying;
   });
   try {
-    const response = await fetch('dist.js', { cache: 'no-store' });
+    const response = await fetch(`dist.js?v=${Date.now()}`, { cache: 'no-store' });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const script = await response.text();
     if (script.length < 500) throw new Error('Incomplete bundle');
