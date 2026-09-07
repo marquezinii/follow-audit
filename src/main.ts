@@ -209,7 +209,7 @@ function start(): void {
       const identity = document.createElement('div');
       identity.className = 'identity';
       const name = document.createElement('a');
-      name.href = `https://www.instagram.com/${encodeURIComponent(account.username)}/`; name.target = '_blank'; name.rel = 'noreferrer'; name.textContent = account.name || text('no_name');
+      name.href = `https://www.instagram.com/${encodeURIComponent(account.username)}/`; name.target = '_blank'; name.rel = 'noopener noreferrer'; name.textContent = account.name || text('no_name');
       const mobileHandle = document.createElement('span');
       mobileHandle.className = 'mobile-handle'; mobileHandle.textContent = `@${account.username}`;
       const badges = document.createElement('small');
@@ -227,7 +227,11 @@ function start(): void {
       protect.setAttribute('aria-pressed', String(protectedIds.has(account.id)));
       protect.addEventListener('click', () => {
         if (protectedIds.has(account.id)) protectedIds.delete(account.id);
-        else { protectedIds.add(account.id); selected.delete(account.id); }
+        else {
+          protectedIds.add(account.id);
+          workspaces.following.selected.delete(account.id);
+          workspaces.followers.selected.delete(account.id);
+        }
         saveProtected(protectedIds, copy); render();
       });
       item.append(choice, accountCell, handle, follows, protect);
@@ -345,7 +349,7 @@ function loadProtected(): Set<string> {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(PROTECTED_KEY) ?? '[]');
     return new Set(Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string' && /^\d+$/.test(id)).slice(0, 10_000) : []);
-  } catch { localStorage.removeItem(PROTECTED_KEY); return new Set(); }
+  } catch { safeSet(PROTECTED_KEY, '[]'); return new Set(); }
 }
 
 function saveProtected(ids: ReadonlySet<string>, copy: Copy): void {
@@ -403,7 +407,7 @@ function layout(copy: Copy, locale: Locale, theme: Theme): string {
     <section class="shell">
       <header class="topbar">
         <div class="mobile-brand"><img src="${logoUrl}" alt=""><strong>Follow Audit</strong></div>
-        <div class="session"><span id="status-dot"></span><span id="status">${copy.status_ready}</span></div>
+        <div class="session" role="status" aria-live="polite"><span id="status-dot"></span><span id="status">${copy.status_ready}</span></div>
         <div class="top-actions">
           <details id="language-menu" class="language-menu"><summary id="language-summary" data-copy-aria="language" aria-label="${copy.language}">${icon('globe')}<span id="active-language">${language}</span>${icon('chevron')}</summary>
             <div class="language-popover" role="menu"><p data-copy="language">${copy.language}</p>
@@ -421,7 +425,7 @@ function layout(copy: Copy, locale: Locale, theme: Theme): string {
           <div class="view-switch" role="group" aria-label="View"><button type="button" data-view="nonmutual">${copy.view_nonfollowers}</button><button type="button" data-view="all" data-copy="view_all">${copy.view_all}</button><button type="button" data-view="protected" data-copy="view_protected">${copy.view_protected}</button></div>
           <span class="toolbar-spacer"></span><button id="select-visible" class="secondary" type="button">${icon('select')}<span id="select-visible-label">${copy.select_visible}</span></button><button id="export" class="secondary" type="button">${icon('download')}<span data-copy="export">${copy.export}</span></button>
         </section>
-        <section class="table" role="table" aria-label="Accounts"><div class="table-head" role="row"><span></span><span data-copy="account">${copy.account}</span><span data-copy="username">${copy.username}</span><span id="relationship-label">${copy.following_you}</span><span data-copy="protection">${copy.protection}</span></div><div id="accounts" class="accounts" aria-live="polite"></div></section>
+        <section class="table" role="table" aria-label="Accounts"><div class="table-head" role="row"><span></span><span data-copy="account">${copy.account}</span><span data-copy="username">${copy.username}</span><span id="relationship-label">${copy.following_you}</span><span data-copy="protection">${copy.protection}</span></div><div id="accounts" class="accounts"></div></section>
       </main>
       <footer class="actionbar"><div class="safety-mark">${icon('shield')}</div><div class="safety-copy"><strong id="safety-title">${copy.safety_title}</strong><span id="safety-body">${copy.safety_body}</span></div><div class="selection"><strong id="selection-count">${copy.selection_none}</strong><span id="selection-context">${copy.following_body}</span></div><button id="run" class="primary action" type="button" disabled><span id="run-label">${format(copy, 'review_unfollow', { count: 0 })}</span>${icon('arrow')}</button></footer>
     </section>

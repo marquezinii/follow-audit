@@ -37,6 +37,9 @@ void test('parses valid pages and rejects malformed responses', () => {
 
   assert.equal(result.accounts[0]?.name, 'Account 10');
   assert.throws(() => parseFollowingPage({ data: { user: {} } }));
+  assert.throws(() => parseFollowingPage({
+    data: { user: { edge_follow: { count: -1, edges: [], page_info: { has_next_page: false, end_cursor: null } } } },
+  }));
 });
 
 void test('parses followers and records whether you follow them back', () => {
@@ -69,6 +72,16 @@ void test('deduplicates accounts across pages', async () => {
   }, new AbortController().signal);
 
   assert.deepEqual(result.map(item => item.id), ['1', '2']);
+});
+
+void test('stops when Instagram repeats a pagination cursor', async () => {
+  let requests = 0;
+  await assert.rejects(scanAccounts(() => {
+    requests += 1;
+    return Promise.resolve({ accounts: [], total: 1, nextCursor: 'same' });
+  }, new AbortController().signal), /repeated pagination cursor/);
+
+  assert.equal(requests, 2);
 });
 
 void test('continues the queue after an individual failure', async () => {

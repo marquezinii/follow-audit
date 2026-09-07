@@ -103,7 +103,7 @@ The local server opens at `http://127.0.0.1:8080/`. Preview mode uses sample acc
 npm run check
 ```
 
-This single command runs ESLint, the Node test suite, TypeScript type checking, and the production build. GitHub Actions runs the same checks for every pull request and every push to `main`.
+This single command runs ESLint, the Node test suite, TypeScript type checking, website validation, and the production build. GitHub Actions runs the same checks for every pull request and every push to `main`.
 
 ### Project map
 

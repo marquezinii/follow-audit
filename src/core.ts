@@ -74,7 +74,8 @@ function parseAccountPage(payload: unknown, kind: ListKind): AccountPage {
   const page = payload.data.user[kind === 'following' ? 'edge_follow' : 'edge_followed_by'];
   if (!isObject(page)
     || typeof page.count !== 'number'
-    || !Number.isFinite(page.count)
+    || !Number.isSafeInteger(page.count)
+    || page.count < 0
     || !Array.isArray(page.edges)
     || !isObject(page.page_info)
     || typeof page.page_info.has_next_page !== 'boolean'
@@ -120,11 +121,18 @@ export async function scanAccounts(
   options: ScanOptions = {},
 ): Promise<readonly Account[]> {
   const accounts = new Map<string, Account>();
+  const seenCursors = new Set<string>();
   const maxPages = options.maxPages ?? 2_000;
   let cursor: string | undefined;
 
   for (let pageNumber = 0; pageNumber < maxPages; pageNumber += 1) {
     signal.throwIfAborted();
+    if (cursor) {
+      if (seenCursors.has(cursor)) {
+        throw new Error('Instagram returned a repeated pagination cursor.');
+      }
+      seenCursors.add(cursor);
+    }
     const page = await loadPage(cursor, signal);
     for (const account of page.accounts) {
       accounts.set(account.id, account);
