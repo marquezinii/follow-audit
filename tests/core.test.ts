@@ -3,6 +3,7 @@ import test from 'node:test';
 import { parseFollowersPage, parseFollowingPage, runSequential, scanAccounts, type Account } from '../src/core';
 import { format, resolveLocale, translations } from '../src/i18n';
 import { InstagramGateway } from '../src/instagram';
+import { parseTikTokExport, pendingTikTokReviewAccounts } from '../src/tiktok';
 
 const account = (id: string): Account => ({
   id,
@@ -144,4 +145,40 @@ void test('resolves supported locales and formats translated values', () => {
   assert.equal(resolveLocale('fr', 'en-US'), 'fr');
   assert.equal(resolveLocale('unknown', 'it-IT'), 'en');
   assert.equal(format(translations.de, 'review_remove', { count: 3 }), 'Entfernungen prüfen · 3');
+});
+
+void test('parses TikTok export lists and derives mutual relationships', () => {
+  const result = parseTikTokExport([
+    { name: 'Follower.json', content: JSON.stringify({ FollowerList: [
+      { Date: '2026-09-01', Username: 'mutual.friend' },
+      { Date: '2026-09-02', Username: 'follower_only' },
+    ] }) },
+    { name: 'Following.json', content: JSON.stringify({ Activity: { Following: { FollowingList: [
+      { Date: '2026-09-01', UserName: 'Mutual.Friend' },
+      { Date: '2026-09-03', Link: 'https://www.tiktok.com/@following_only' },
+    ] } } }) },
+  ]);
+
+  assert.deepEqual(result.following.map(item => [item.username, item.followsYou]), [
+    ['Mutual.Friend', true],
+    ['following_only', false],
+  ]);
+  assert.deepEqual(result.followers.map(item => [item.username, item.youFollow]), [
+    ['mutual.friend', true],
+    ['follower_only', false],
+  ]);
+  assert.throws(() => parseTikTokExport([
+    { name: 'Following.json', content: '{"FollowingList":[]}' },
+  ]), /not both found/);
+});
+
+void test('keeps protected and already reviewed TikTok accounts out of guided review', () => {
+  const pending = pendingTikTokReviewAccounts([
+    account('pending'),
+    account('protected'),
+    account('reviewed'),
+    { ...account('mutual'), followsYou: true },
+  ], new Set(['protected']), new Set(['reviewed']));
+
+  assert.deepEqual(pending.map(item => item.id), ['pending']);
 });

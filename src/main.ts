@@ -1,16 +1,21 @@
 import { runSequential, scanAccounts, wait, type Account, type ListKind } from './core';
 import { format, resolveLocale, translations, type Copy, type CopyKey, type Locale } from './i18n';
 import { InstagramGateway } from './instagram';
+import { parseTikTokExport, pendingTikTokReviewAccounts } from './tiktok';
 import logoUrl from './logo.png';
 import fontUrl from './manrope.ttf';
 
 const HOST_ID = 'follow-audit-app';
-const PROTECTED_KEY = 'follow-audit:protected';
 const LOCALE_KEY = 'follow-audit:language';
 const THEME_KEY = 'follow-audit:theme';
 const previewMode = ['localhost', '127.0.0.1', '::1'].includes(location.hostname)
   || (location.hostname === 'marquezinii.github.io' && location.pathname.endsWith('/follow-audit/preview.html'));
 const instagramHost = location.hostname === 'instagram.com' || location.hostname.endsWith('.instagram.com');
+const tiktokHost = location.hostname === 'tiktok.com' || location.hostname.endsWith('.tiktok.com');
+const platform = tiktokHost || (previewMode && new URL(location.href).searchParams.get('platform') === 'tiktok') ? 'tiktok' : 'instagram';
+const readOnly = platform === 'tiktok';
+const PROTECTED_KEY = readOnly ? 'follow-audit:tiktok:protected' : 'follow-audit:protected';
+const TIKTOK_REVIEWED_KEY = 'follow-audit:tiktok:reviewed';
 
 type Mode = 'idle' | 'scanning' | 'ready' | 'running' | 'error';
 type View = 'nonmutual' | 'all' | 'protected';
@@ -38,12 +43,15 @@ function start(): void {
   let view: View = 'nonmutual';
   let query = '';
   let progress = 0;
-  let statusKey: CopyKey = 'status_ready';
+  let statusKey: CopyKey = readOnly ? 'tiktok_status_ready' : 'status_ready';
   let statusValues: Record<string, string | number> = {};
   let controller: AbortController | undefined;
   let confirmedQueue: readonly Account[] = [];
   let confirmedList: ListKind = 'following';
   const protectedIds = loadProtected();
+  const reviewedIds = readOnly ? loadLocalIds(TIKTOK_REVIEWED_KEY) : new Set<string>();
+  let reviewQueue: readonly Account[] = [];
+  let reviewIndex = 0;
   const workspaces: Record<ListKind, WorkspaceState> = {
     following: { accounts: [], selected: new Set(), results: new Map() },
     followers: { accounts: [], selected: new Set(), results: new Map() },
@@ -71,6 +79,9 @@ function start(): void {
         || account.name.toLocaleLowerCase(locale).includes(normalizedQuery);
     });
   };
+  const reviewableAccounts = (includeReviewed = false): readonly Account[] => listKind === 'following'
+    ? pendingTikTokReviewAccounts(visibleAccounts(), protectedIds, includeReviewed ? new Set() : reviewedIds)
+    : [];
 
   const updateThemeControl = (): void => {
     const toggle = get<HTMLButtonElement>('#theme-toggle');
@@ -103,6 +114,8 @@ function start(): void {
     const locked = mode === 'scanning' || mode === 'running';
     const nonmutual = accounts.filter(account => !(listKind === 'following' ? account.followsYou : account.youFollow)).length;
     const hasAccounts = accounts.length > 0;
+    const pendingReview = reviewableAccounts();
+    const restartableReview = reviewableAccounts(true);
 
     get<HTMLElement>('#status').textContent = text(statusKey, statusValues);
     get<HTMLElement>('#status-dot').dataset.mode = mode;
@@ -112,9 +125,12 @@ function start(): void {
     get<HTMLElement>('#nonmutual-count').textContent = String(nonmutual);
     get<HTMLElement>('#protected-count').textContent = String(protectedIds.size);
     get<HTMLElement>('#page-title').textContent = text(view === 'protected' ? 'protected_title' : `${listKind}_title`);
-    get<HTMLElement>('#page-body').textContent = text(view === 'protected' ? 'protected_body' : `${listKind}_body`);
+    const bodyKey: CopyKey = view === 'protected'
+      ? 'protected_body'
+      : readOnly ? `tiktok_${listKind}_body` : `${listKind}_body`;
+    get<HTMLElement>('#page-body').textContent = text(bodyKey);
     get<HTMLButtonElement>('#scan').disabled = locked;
-    get<HTMLElement>('#scan-label').textContent = text(hasAccounts ? 'refresh' : 'audit');
+    get<HTMLElement>('#scan-label').textContent = text(readOnly ? hasAccounts ? 'tiktok_reimport' : 'tiktok_import' : hasAccounts ? 'refresh' : 'audit');
     get<HTMLButtonElement>('#cancel').hidden = !locked;
     get<HTMLButtonElement>('#export').disabled = !hasAccounts;
     get<HTMLInputElement>('#search').disabled = locked;
@@ -130,9 +146,13 @@ function start(): void {
     get<HTMLElement>('#nonmutual-label').textContent = text(listKind === 'following' ? 'view_nonfollowers' : 'view_not_followed');
     get<HTMLElement>('#relationship-label').textContent = text(listKind === 'following' ? 'following_you' : 'you_follow');
     get<HTMLButtonElement>('[data-view="nonmutual"]').textContent = text(listKind === 'following' ? 'view_nonfollowers' : 'view_not_followed');
-    get<HTMLElement>('#safety-title').textContent = text('safety_title');
-    get<HTMLElement>('#safety-body').textContent = text('safety_body');
-    get<HTMLElement>('#selection-context').textContent = text(`${listKind}_body`);
+    get<HTMLElement>('#safety-title').textContent = text(readOnly ? 'tiktok_safety_title' : 'safety_title');
+    get<HTMLElement>('#safety-body').textContent = text(readOnly ? 'tiktok_safety_body' : 'safety_body');
+    get<HTMLElement>('#selection-context').textContent = text(readOnly ? `tiktok_${listKind}_body` : `${listKind}_body`);
+    const guidedReview = get<HTMLButtonElement>('#guided-review');
+    guidedReview.hidden = !readOnly || locked || restartableReview.length === 0;
+    guidedReview.disabled = locked || restartableReview.length === 0;
+    get<HTMLElement>('#guided-review-label').textContent = text(pendingReview.length > 0 ? 'tiktok_guided_start' : 'tiktok_guided_restart', { count: pendingReview.length || restartableReview.length });
     root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(button => {
       const active = button.dataset.view === view;
       button.dataset.active = String(active);
@@ -150,7 +170,7 @@ function start(): void {
     const allVisibleSelected = selectable.length > 0 && selectable.every(account => selected.has(account.id));
 
     get<HTMLElement>('#selection-count').textContent = selected.size === 0 ? text('selection_none') : text('selection_count', { count: selected.size });
-    get<HTMLButtonElement>('#run').disabled = locked || selected.size === 0;
+    get<HTMLButtonElement>('#run').disabled = readOnly || locked || selected.size === 0;
     get<HTMLElement>('#run-label').textContent = text(listKind === 'following' ? 'review_unfollow' : 'review_remove', { count: selected.size });
     get<HTMLButtonElement>('#select-visible').disabled = locked || selectable.length === 0;
     get<HTMLElement>('#select-visible-label').textContent = text(allVisibleSelected ? 'clear_visible' : 'select_visible');
@@ -164,15 +184,15 @@ function start(): void {
       const empty = document.createElement('section');
       empty.className = 'empty';
       empty.innerHTML = `${icon(accounts.length === 0 ? 'scan' : 'search')}<h2></h2><p></p>`;
-      empty.querySelector('h2')!.textContent = text(accounts.length === 0 ? 'empty_initial_title' : 'empty_filtered_title');
-      empty.querySelector('p')!.textContent = text(accounts.length === 0 ? 'empty_initial_body' : 'empty_filtered_body');
+      empty.querySelector('h2')!.textContent = text(accounts.length === 0 && readOnly ? 'tiktok_empty_title' : accounts.length === 0 ? 'empty_initial_title' : 'empty_filtered_title');
+      empty.querySelector('p')!.textContent = text(accounts.length === 0 && readOnly ? 'tiktok_empty_body' : accounts.length === 0 ? 'empty_initial_body' : 'empty_filtered_body');
       if (accounts.length === 0) {
         const action = document.createElement('button');
         action.type = 'button';
         action.className = 'primary empty-action';
-        action.textContent = text('empty_initial_action');
+        action.textContent = text(readOnly ? 'tiktok_empty_action' : 'empty_initial_action');
         action.disabled = locked;
-        action.addEventListener('click', () => void scan());
+        action.addEventListener('click', requestScan);
         empty.append(action);
       }
       list.append(empty);
@@ -190,31 +210,37 @@ function start(): void {
 
       const choice = document.createElement('label');
       choice.className = 'check';
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.checked = selected.has(account.id);
-      checkbox.disabled = locked || protectedIds.has(account.id) || results.get(account.id) === 'ok';
-      checkbox.setAttribute('aria-label', text('select_account', { username: account.username }));
-      choice.append(checkbox, document.createElement('span'));
-      checkbox.addEventListener('change', () => {
-        if (checkbox.checked) selected.add(account.id);
-        else selected.delete(account.id);
-        item.dataset.selected = String(checkbox.checked);
-        renderSelection();
-      });
+      if (!readOnly) {
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = selected.has(account.id);
+        checkbox.disabled = locked || protectedIds.has(account.id) || results.get(account.id) === 'ok';
+        checkbox.setAttribute('aria-label', text('select_account', { username: account.username }));
+        choice.append(checkbox, document.createElement('span'));
+        checkbox.addEventListener('change', () => {
+          if (checkbox.checked) selected.add(account.id);
+          else selected.delete(account.id);
+          item.dataset.selected = String(checkbox.checked);
+          renderSelection();
+        });
+      }
 
       const accountCell = document.createElement('div');
       accountCell.className = 'account-cell';
       const avatar = document.createElement('img');
-      avatar.className = 'avatar'; avatar.src = account.avatarUrl; avatar.alt = ''; avatar.loading = 'lazy';
+      avatar.className = 'avatar'; avatar.src = account.avatarUrl || logoUrl; avatar.alt = ''; avatar.loading = 'lazy';
       const identity = document.createElement('div');
       identity.className = 'identity';
       const name = document.createElement('a');
-      name.href = `https://www.instagram.com/${encodeURIComponent(account.username)}/`; name.target = '_blank'; name.rel = 'noopener noreferrer'; name.textContent = account.name || text('no_name');
+      name.href = platform === 'tiktok'
+        ? `https://www.tiktok.com/@${encodeURIComponent(account.username)}`
+        : `https://www.instagram.com/${encodeURIComponent(account.username)}/`;
+      name.target = '_blank'; name.rel = 'noopener noreferrer'; name.textContent = account.name || (readOnly ? `@${account.username}` : text('no_name'));
       const mobileHandle = document.createElement('span');
       mobileHandle.className = 'mobile-handle'; mobileHandle.textContent = `@${account.username}`;
       const badges = document.createElement('small');
       badges.textContent = [account.isPrivate ? text('private') : '', account.isVerified ? text('verified') : '', result === 'ok' ? text(listKind === 'following' ? 'unfollowed' : 'removed') : '', result && result !== 'ok' ? `${text('failed')}: ${result}` : ''].filter(Boolean).join(' · ');
+      if (readOnly && reviewedIds.has(account.id)) badges.textContent = [badges.textContent, text('tiktok_reviewed')].filter(Boolean).join(' · ');
       identity.append(name, mobileHandle, badges); accountCell.append(avatar, identity);
 
       const handle = document.createElement('span'); handle.className = 'handle'; handle.textContent = `@${account.username}`;
@@ -235,7 +261,7 @@ function start(): void {
         }
         saveProtected(protectedIds, copy); render();
       });
-      item.append(choice, accountCell, handle, follows, protect);
+      item.append(...readOnly ? [accountCell, follows, protect] : [choice, accountCell, handle, follows, protect]);
       fragment.append(item);
     }
     list.append(fragment);
@@ -257,7 +283,40 @@ function start(): void {
     } finally { controller = undefined; render(); }
   };
 
+  const importTikTok = async (files: readonly File[]): Promise<void> => {
+    controller = new AbortController(); mode = 'scanning'; progress = 1;
+    setStatus('tiktok_status_loading'); render();
+    try {
+      if (files.length > 20 || files.reduce((total, file) => total + file.size, 0) > 50_000_000) {
+        throw new Error('The selected TikTok export is too large.');
+      }
+      const sources = await Promise.all(files.map(async file => ({ name: file.name, content: await file.text() })));
+      controller.signal.throwIfAborted();
+      const lists = parseTikTokExport(sources);
+      for (const kind of ['followers', 'following'] as const) {
+        workspaces[kind].accounts = lists[kind];
+        workspaces[kind].results.clear();
+        workspaces[kind].selected.clear();
+      }
+      mode = 'ready'; progress = 100; setStatus('status_complete', { count: workspaces[listKind].accounts.length });
+    } catch (error) {
+      const aborted = controller.signal.aborted;
+      if (!aborted) globalThis.console.error('[Follow Audit] TikTok import failed:', error);
+      mode = aborted ? 'idle' : 'error'; progress = 0;
+      setStatus(aborted ? 'status_cancelled' : 'tiktok_import_error');
+    } finally { controller = undefined; render(); }
+  };
+
+  const requestScan = (): void => {
+    if (readOnly && !previewMode) {
+      const input = get<HTMLInputElement>('#tiktok-files');
+      input.value = '';
+      input.click();
+    } else void scan();
+  };
+
   const openConfirmation = (): void => {
+    if (readOnly) return;
     const { accounts, selected } = workspaces[listKind];
     confirmedQueue = accounts.filter(account => selected.has(account.id) && !protectedIds.has(account.id));
     confirmedList = listKind;
@@ -276,7 +335,48 @@ function start(): void {
     get<HTMLButtonElement>('#confirm-action').focus();
   };
 
+  const renderGuidedReview = (): void => {
+    const account = reviewQueue[reviewIndex];
+    if (!account) {
+      get<HTMLDialogElement>('#guided-review-dialog').close();
+      setStatus('tiktok_review_complete', { count: reviewedIds.size });
+      render();
+      return;
+    }
+    get<HTMLElement>('#guided-review-position').textContent = text('tiktok_review_position', { current: reviewIndex + 1, total: reviewQueue.length });
+    get<HTMLElement>('#guided-review-account').textContent = `@${account.username}`;
+    const open = get<HTMLAnchorElement>('#guided-review-open');
+    open.href = `https://www.tiktok.com/@${encodeURIComponent(account.username)}`;
+    open.textContent = text('tiktok_review_open', { username: account.username });
+  };
+
+  const startGuidedReview = (): void => {
+    if (!readOnly) return;
+    let queue = reviewableAccounts();
+    if (queue.length === 0 && reviewableAccounts(true).length > 0) {
+      for (const account of reviewableAccounts(true)) reviewedIds.delete(account.id);
+      saveLocalIds(TIKTOK_REVIEWED_KEY, reviewedIds, copy);
+      queue = reviewableAccounts();
+    }
+    if (queue.length === 0) return;
+    reviewQueue = queue;
+    reviewIndex = 0;
+    renderGuidedReview();
+    get<HTMLDialogElement>('#guided-review-dialog').showModal();
+    get<HTMLAnchorElement>('#guided-review-open').focus();
+  };
+
+  const confirmManualReview = (): void => {
+    const account = reviewQueue[reviewIndex];
+    if (!account) return;
+    reviewedIds.add(account.id);
+    saveLocalIds(TIKTOK_REVIEWED_KEY, reviewedIds, copy);
+    reviewIndex += 1;
+    renderGuidedReview();
+  };
+
   const runConfirmed = async (): Promise<void> => {
+    if (readOnly) return;
     const queue = confirmedQueue;
     if (queue.length === 0) return;
     const { selected, results } = workspaces[confirmedList];
@@ -303,7 +403,7 @@ function start(): void {
   const setList = (next: ListKind): void => {
     listKind = next; view = 'nonmutual'; query = ''; get<HTMLInputElement>('#search').value = '';
     progress = workspaces[next].accounts.length > 0 ? 100 : 0;
-    setStatus(workspaces[next].accounts.length > 0 ? 'status_complete' : 'status_ready', { count: workspaces[next].accounts.length });
+    setStatus(workspaces[next].accounts.length > 0 ? 'status_complete' : readOnly ? 'tiktok_status_ready' : 'status_ready', { count: workspaces[next].accounts.length });
     render();
   };
   const onKeyDown = (event: KeyboardEvent): void => {
@@ -314,9 +414,16 @@ function start(): void {
   const close = (): void => { controller?.abort(); document.removeEventListener('keydown', onKeyDown); host.remove(); };
 
   get<HTMLButtonElement>('#close').addEventListener('click', close);
-  get<HTMLButtonElement>('#scan').addEventListener('click', () => void scan());
+  get<HTMLButtonElement>('#scan').addEventListener('click', requestScan);
+  get<HTMLInputElement>('#tiktok-files').addEventListener('change', event => {
+    const files = [...((event.currentTarget as HTMLInputElement).files ?? [])];
+    if (files.length > 0) void importTikTok(files);
+  });
   get<HTMLButtonElement>('#cancel').addEventListener('click', () => controller?.abort());
   get<HTMLButtonElement>('#run').addEventListener('click', openConfirmation);
+  get<HTMLButtonElement>('#guided-review').addEventListener('click', startGuidedReview);
+  get<HTMLButtonElement>('#guided-review-done').addEventListener('click', confirmManualReview);
+  get<HTMLButtonElement>('#guided-review-skip').addEventListener('click', () => { reviewIndex += 1; renderGuidedReview(); });
   get<HTMLButtonElement>('#confirm-action').addEventListener('click', () => { get<HTMLDialogElement>('#confirm-dialog').close(); void runConfirmed(); });
   get<HTMLButtonElement>('#select-visible').addEventListener('click', () => {
     const { selected, results } = workspaces[listKind];
@@ -350,14 +457,21 @@ function start(): void {
 }
 
 function loadProtected(): Set<string> {
+  return loadLocalIds(PROTECTED_KEY);
+}
+
+function loadLocalIds(key: string): Set<string> {
   try {
-    const value: unknown = JSON.parse(localStorage.getItem(PROTECTED_KEY) ?? '[]');
-    return new Set(Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string' && /^\d+$/.test(id)).slice(0, 10_000) : []);
-  } catch { safeSet(PROTECTED_KEY, '[]'); return new Set(); }
+    const value: unknown = JSON.parse(localStorage.getItem(key) ?? '[]');
+    return new Set(Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string' && id.length <= 80 && ![...id].some(character => character.charCodeAt(0) < 32)).slice(0, 10_000) : []);
+  } catch { safeSet(key, '[]'); return new Set(); }
 }
 
 function saveProtected(ids: ReadonlySet<string>, copy: Copy): void {
-  try { localStorage.setItem(PROTECTED_KEY, JSON.stringify([...ids].slice(0, 10_000))); }
+  saveLocalIds(PROTECTED_KEY, ids, copy);
+}
+function saveLocalIds(key: string, ids: ReadonlySet<string>, copy: Copy): void {
+  try { localStorage.setItem(key, JSON.stringify([...ids].slice(0, 10_000))); }
   catch { alert(copy.protected_save_error); }
 }
 
@@ -388,22 +502,22 @@ async function previewAccounts(kind: ListKind, signal: AbortSignal): Promise<rea
     ['103', 'noahpatel', 'Noah Patel', false, true, false, 'noah-patel.png'], ['104', 'isabellarossi', 'Isabella Rossi', true, false, false, 'isabella-rossi.png'],
     ['105', 'masonlee', 'Mason Lee', false, false, false, 'mason-lee.png'], ['106', 'sophiedubois', 'Sophie Dubois', true, true, false, 'sophie-dubois.png'],
   ].map(([id, username, name, followsYou, isPrivate, isVerified, avatar]) => ({
-    id: String(id), username: String(username), name: String(name), avatarUrl: new URL(String(avatar), base).href,
+    id: String(id), username: String(username), name: readOnly ? '' : String(name), avatarUrl: readOnly ? '' : new URL(String(avatar), base).href,
     followsYou: kind === 'followers' || Boolean(followsYou), youFollow: kind === 'following' || Boolean(followsYou),
-    isPrivate: Boolean(isPrivate), isVerified: Boolean(isVerified),
+    isPrivate: readOnly ? false : Boolean(isPrivate), isVerified: readOnly ? false : Boolean(isVerified),
   }));
 }
 
 function layout(copy: Copy, locale: Locale, theme: Theme): string {
   const language = locale === 'pt-BR' ? 'PT' : locale.toUpperCase();
-  return `<div class="app" data-theme="${theme}" lang="${locale}">
+  return `<div class="app" data-theme="${theme}" data-platform="${platform}" lang="${locale}">
     <aside class="sidebar">
       <div class="brand"><img src="${logoUrl}" alt=""><strong>Follow Audit</strong></div>
       <nav aria-label="Follow Audit">
         <button type="button" data-list="following" data-active="true" data-copy-aria="following" aria-label="${copy.following}">${icon('review')}<span data-copy="following">${copy.following}</span></button>
         <button type="button" data-list="followers" data-copy-aria="followers" aria-label="${copy.followers}">${icon('followers')}<span data-copy="followers">${copy.followers}</span></button>
         <button id="nav-protected" type="button" data-copy-aria="protected" aria-label="${copy.protected}">${icon('shield')}<span data-copy="protected">${copy.protected}</span></button>
-        <button id="nav-settings" type="button" data-copy-aria="settings" aria-label="${copy.settings}">${icon('settings')}<span data-copy="settings">${copy.settings}</span></button>
+        <button id="nav-settings" type="button" data-copy-aria="settings" aria-label="${copy.settings}" ${readOnly ? 'hidden' : ''}>${icon('settings')}<span data-copy="settings">${copy.settings}</span></button>
       </nav>
       <section id="sidebar-summary" class="sidebar-summary" hidden><div><strong id="total-count">0</strong><span id="total-label">${copy.following}</span></div><div><strong id="nonmutual-count">0</strong><span id="nonmutual-label">${copy.view_nonfollowers}</span></div><div><strong id="protected-count">0</strong><span data-copy="protected_label">${copy.protected_label}</span></div></section>
       <div class="local-note"><span class="local-dot"></span><div><strong data-copy="privacy_title">${copy.privacy_title}</strong><small data-copy="privacy_body">${copy.privacy_body}</small></div></div><span class="route-line" aria-hidden="true"></span>
@@ -411,7 +525,7 @@ function layout(copy: Copy, locale: Locale, theme: Theme): string {
     <section class="shell">
       <header class="topbar">
         <div class="mobile-brand"><img src="${logoUrl}" alt=""><strong>Follow Audit</strong></div>
-        <div class="session" role="status" aria-live="polite"><span id="status-dot"></span><span id="status">${copy.status_ready}</span></div>
+        <div class="session" role="status" aria-live="polite"><span id="status-dot"></span><span id="status">${copy[readOnly ? 'tiktok_status_ready' : 'status_ready']}</span></div>
         <div class="top-actions">
           <details id="language-menu" class="language-menu"><summary id="language-summary" data-copy-aria="language" aria-label="${copy.language}">${icon('globe')}<span id="active-language">${language}</span>${icon('chevron')}</summary>
             <div class="language-popover" role="menu"><p data-copy="language">${copy.language}</p>
@@ -422,19 +536,20 @@ function layout(copy: Copy, locale: Locale, theme: Theme): string {
         </div>
       </header><progress id="progress" max="100" value="0" style="visibility:hidden"></progress>
       <main class="workspace">
-        <section class="page-heading"><div><h1 id="page-title">${copy.following_title}</h1><p id="page-body">${copy.following_body}</p></div><div class="scan-actions"><button id="cancel" class="secondary danger" type="button" hidden><span data-copy="cancel">${copy.cancel}</span></button><button id="scan" class="primary" type="button">${icon('scan')}<span id="scan-label">${copy.audit}</span></button></div></section>
+        <section class="page-heading"><div><h1 id="page-title">${copy.following_title}</h1><p id="page-body">${copy[readOnly ? 'tiktok_following_body' : 'following_body']}</p></div><div class="scan-actions"><input id="tiktok-files" type="file" accept=".json,application/json" multiple hidden><button id="cancel" class="secondary danger" type="button" hidden><span data-copy="cancel">${copy.cancel}</span></button><button id="scan" class="primary" type="button">${icon('scan')}<span id="scan-label">${copy[readOnly ? 'tiktok_import' : 'audit']}</span></button></div></section>
         <section class="toolbar" aria-label="Account controls">
           <div class="list-switch" role="tablist"><button type="button" role="tab" data-list="following" data-copy="following">${copy.following}</button><button type="button" role="tab" data-list="followers" data-copy="followers">${copy.followers}</button></div>
           <label class="search">${icon('search')}<span class="sr-only" data-copy="search">${copy.search}</span><input id="search" type="search" data-copy-placeholder="search" placeholder="${copy.search}"></label>
           <div class="view-switch" role="group" aria-label="View"><button type="button" data-view="nonmutual">${copy.view_nonfollowers}</button><button type="button" data-view="all" data-copy="view_all">${copy.view_all}</button><button type="button" data-view="protected" data-copy="view_protected">${copy.view_protected}</button></div>
-          <span class="toolbar-spacer"></span><button id="select-visible" class="secondary" type="button">${icon('select')}<span id="select-visible-label">${copy.select_visible}</span></button><button id="export" class="secondary" type="button">${icon('download')}<span data-copy="export">${copy.export}</span></button>
+          <span class="toolbar-spacer"></span><button id="select-visible" class="secondary" type="button" ${readOnly ? 'hidden' : ''}>${icon('select')}<span id="select-visible-label">${copy.select_visible}</span></button><button id="export" class="secondary" type="button">${icon('download')}<span data-copy="export">${copy.export}</span></button>
         </section>
         <section class="table" role="table" aria-label="Accounts"><div class="table-head" role="row"><span></span><span data-copy="account">${copy.account}</span><span data-copy="username">${copy.username}</span><span id="relationship-label">${copy.following_you}</span><span data-copy="protection">${copy.protection}</span></div><div id="accounts" class="accounts"></div></section>
       </main>
-      <footer class="actionbar"><div class="safety-mark">${icon('shield')}</div><div class="safety-copy"><strong id="safety-title">${copy.safety_title}</strong><span id="safety-body">${copy.safety_body}</span></div><div class="selection"><strong id="selection-count">${copy.selection_none}</strong><span id="selection-context">${copy.following_body}</span></div><button id="run" class="primary action" type="button" disabled><span id="run-label">${format(copy, 'review_unfollow', { count: 0 })}</span>${icon('arrow')}</button></footer>
+      <footer class="actionbar"><div class="safety-mark">${icon('shield')}</div><div class="safety-copy"><strong id="safety-title">${copy[readOnly ? 'tiktok_safety_title' : 'safety_title']}</strong><span id="safety-body">${copy[readOnly ? 'tiktok_safety_body' : 'safety_body']}</span></div><div class="selection" ${readOnly ? 'hidden' : ''}><strong id="selection-count">${copy.selection_none}</strong><span id="selection-context">${copy.following_body}</span></div><button id="guided-review" class="primary action" type="button" hidden><span id="guided-review-label"></span>${icon('arrow')}</button><button id="run" class="primary action" type="button" disabled ${readOnly ? 'hidden' : ''}><span id="run-label">${format(copy, 'review_unfollow', { count: 0 })}</span>${icon('arrow')}</button></footer>
     </section>
     <dialog id="settings-dialog" class="dialog side-dialog"><form method="dialog" class="dialog-panel"><header><div><h2 data-copy="settings_title">${copy.settings_title}</h2><p data-copy="settings_body">${copy.settings_body}</p></div><button type="submit" class="icon-button" data-close-dialog data-copy-aria="close" aria-label="${copy.close}">${icon('close')}</button></header><div class="setting-row"><label for="delay" data-copy="delay_label">${copy.delay_label}</label><div><input id="delay" type="number" min="2" max="120" value="4"><span data-copy="delay_unit">${copy.delay_unit}</span></div></div><div class="setting-row"><label for="batch-delay" data-copy="batch_label">${copy.batch_label}</label><div><input id="batch-delay" type="number" min="1" max="30" value="5"><span data-copy="batch_unit">${copy.batch_unit}</span></div></div><p class="notice">${icon('info')}<span data-copy="limits_notice">${copy.limits_notice}</span></p><button type="submit" class="primary full" data-close-dialog data-copy="done">${copy.done}</button></form></dialog>
     <dialog id="confirm-dialog" class="dialog confirm-dialog"><section class="dialog-panel"><header><div><span class="dialog-icon">${icon('shield')}</span><h2 data-copy="confirm_title">${copy.confirm_title}</h2><p id="confirm-body"></p></div><button type="button" class="icon-button" data-close-dialog data-copy-aria="close" aria-label="${copy.close}">${icon('close')}</button></header><p class="list-label" data-copy="confirm_list">${copy.confirm_list}</p><div id="confirm-accounts" class="confirm-accounts"></div><footer><button type="button" class="secondary" data-close-dialog data-copy="confirm_cancel">${copy.confirm_cancel}</button><button id="confirm-action" type="button" class="primary danger-primary"><span id="confirm-action-label"></span>${icon('arrow')}</button></footer></section></dialog>
+    <dialog id="guided-review-dialog" class="dialog confirm-dialog"><section class="dialog-panel"><header><div><span class="dialog-icon">${icon('shield')}</span><h2 data-copy="tiktok_review_title">${copy.tiktok_review_title}</h2><p data-copy="tiktok_review_body">${copy.tiktok_review_body}</p></div><button type="button" class="icon-button" data-close-dialog data-copy-aria="close" aria-label="${copy.close}">${icon('close')}</button></header><p id="guided-review-position" class="list-label"></p><div class="guided-account"><strong id="guided-review-account"></strong><a id="guided-review-open" class="primary" target="_blank" rel="noopener noreferrer"></a></div><p class="notice">${icon('shield')}<span data-copy="tiktok_review_notice">${copy.tiktok_review_notice}</span></p><footer><button id="guided-review-skip" type="button" class="secondary" data-copy="tiktok_review_skip">${copy.tiktok_review_skip}</button><button id="guided-review-done" type="button" class="primary danger-primary" data-copy="tiktok_review_done">${copy.tiktok_review_done}</button></footer></section></dialog>
   </div>`;
 }
 
@@ -472,7 +587,7 @@ const styles = `
   .language-popover{position:absolute;z-index:10;top:calc(100% + 10px);right:0;width:230px;padding:8px;border:1px solid var(--border);border-radius:12px;background:var(--surface);box-shadow:var(--shadow)}.language-popover p{margin:5px 9px 8px;color:var(--quiet);font-size:10px;font-weight:750;letter-spacing:.1em;text-transform:uppercase}.language-popover button{display:grid;grid-template-columns:32px 1fr 20px;align-items:center;width:100%;min-height:42px;border:0;border-radius:7px;padding:0 9px;color:var(--text);background:transparent;text-align:left}.language-popover button:hover{background:var(--subtle)}.language-popover button>span{color:var(--quiet);font-size:11px;font-weight:750}.language-popover button>strong{font-size:13px;font-weight:600}.language-popover button svg{display:none;width:16px;color:var(--cyan)}.language-popover button[data-active=true]{color:var(--cyan);background:var(--active)}.language-popover button[data-active=true] svg{display:block}
   .theme-toggle{position:relative;display:grid;grid-template-columns:36px 36px;width:76px;padding:2px;overflow:hidden;border-radius:24px}.theme-toggle span{z-index:1;display:grid;place-items:center}.theme-toggle svg{width:17px}.theme-toggle i{position:absolute;top:3px;left:3px;width:34px;height:34px;border-radius:50%;background:var(--navy);transition:transform .2s ease}.theme-toggle span:first-child{color:#fff}.theme-toggle span:nth-child(2){color:var(--muted)}.app[data-theme=dark] .theme-toggle i{transform:translateX(36px);background:#e9f7ff}.app[data-theme=dark] .theme-toggle span:first-child{color:var(--muted)}.app[data-theme=dark] .theme-toggle span:nth-child(2){color:var(--navy)}
   progress{display:block;width:100%;height:3px;appearance:none;border:0;background:transparent}progress::-webkit-progress-bar{background:transparent}progress::-webkit-progress-value{background:var(--cyan);transition:width .2s ease}
-  .workspace{min-height:0;overflow:auto;padding:48px clamp(26px,4vw,62px) 32px}.page-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:30px;margin-bottom:36px}.page-heading h1{margin:0;color:var(--text);font-size:clamp(34px,4vw,46px);line-height:1.05;letter-spacing:-.048em}.page-heading p{margin:12px 0 0;color:var(--muted);font-size:16px}.scan-actions{display:flex;gap:9px}
+  .workspace{min-height:0;overflow-x:hidden;overflow-y:auto;padding:48px clamp(26px,4vw,62px) 32px}.page-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:30px;margin-bottom:36px}.page-heading h1{margin:0;color:var(--text);font-size:clamp(34px,4vw,46px);line-height:1.05;letter-spacing:-.048em}.page-heading p{margin:12px 0 0;color:var(--muted);font-size:16px}.scan-actions{display:flex;gap:9px}
   .primary,.secondary,.protect{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:42px;border-radius:8px;padding:0 16px;font-weight:680;transition:border-color .15s ease,background .15s ease,transform .15s ease}.primary{border:1px solid var(--cyan);color:#fff;background:var(--navy)}.primary:hover:not(:disabled){transform:translateY(-1px);background:var(--navy2)}.secondary,.protect{border:1px solid var(--border);color:var(--text);background:var(--surface)}.secondary:hover:not(:disabled),.protect:hover:not(:disabled){border-color:var(--strong);background:var(--subtle)}.secondary.danger{color:var(--negative)}
   .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:18px}.search{position:relative;display:flex;align-items:center;width:min(330px,31vw)}.search>svg{position:absolute;left:13px;width:18px;color:var(--quiet);pointer-events:none}.search input{width:100%;height:44px;border:1px solid var(--border);border-radius:8px;padding:0 14px 0 42px;color:var(--text);background:var(--surface)}.search input::placeholder{color:var(--quiet)}
   .list-switch{display:flex;align-items:center;padding:3px;border:1px solid var(--border);border-radius:9px;background:var(--surface)}.list-switch button{min-height:36px;border:0;border-radius:6px;padding:0 14px;color:var(--muted);background:transparent;font-weight:680}.list-switch button[data-active=true]{color:#fff;background:var(--navy)}
@@ -484,14 +599,16 @@ const styles = `
   .protect{justify-self:start;min-width:112px;min-height:38px;color:var(--cyan)}.protect svg{width:18px}.protect[data-active=true]{border-color:transparent;color:var(--positive);background:color-mix(in srgb,var(--positive) 11%,transparent)}
   .empty{display:grid;justify-items:center;padding:clamp(58px,9vh,100px) 24px;text-align:center}.empty>svg{width:38px;height:38px;margin-bottom:20px;color:var(--cyan)}.empty h2{margin:0;color:var(--text);font-size:24px;letter-spacing:-.025em}.empty p{max-width:430px;margin:9px 0 0;color:var(--muted)}.empty-action{margin-top:24px}
   .actionbar{position:relative;display:grid;grid-template-columns:auto minmax(230px,1fr) minmax(180px,.65fr) auto;align-items:center;gap:18px;min-height:104px;padding:16px clamp(26px,4vw,62px);border-top:1px solid var(--border);background:var(--surface)}.actionbar:before{content:"";position:absolute;top:-1px;right:0;width:28%;height:1px;background:var(--cyan)}.safety-mark{display:grid;place-items:center;width:46px;height:46px;color:var(--navy)}.app[data-theme=dark] .safety-mark{color:var(--cyan)}.safety-mark svg{width:36px;height:36px}.safety-copy strong,.safety-copy span,.selection strong,.selection span{display:block}.safety-copy strong,.selection strong{color:var(--text);font-size:13px}.safety-copy span,.selection span{margin-top:3px;color:var(--muted);font-size:11px}.selection{padding-left:24px;border-left:1px solid var(--border)}.action{min-width:220px;min-height:54px;border-color:var(--orange);background:var(--orange);font-size:15px}.action:hover:not(:disabled){background:#f27f00}
+  .app[data-platform=tiktok] .table-head,.app[data-platform=tiktok] .account-row{grid-template-columns:minmax(220px,1fr) 150px 160px}.app[data-platform=tiktok] .table-head>span:first-child,.app[data-platform=tiktok] .table-head>[data-copy=username]{display:none}.app[data-platform=tiktok] .actionbar{grid-template-columns:auto minmax(230px,1fr) auto}
   .dialog{position:fixed;inset:0;width:100vw;max-width:none;height:100vh;max-height:none;margin:0;border:0;padding:0;color:var(--text);background:transparent;overflow:visible}.dialog[open]{display:grid;place-items:center}.dialog::backdrop{background:rgba(1,13,27,.68);backdrop-filter:blur(4px)}.dialog-panel{display:block;width:min(560px,calc(100vw - 34px));max-height:min(760px,calc(100vh - 34px));overflow:auto;border:1px solid var(--border);border-radius:14px;padding:26px;color:var(--text);background:var(--surface);box-shadow:var(--shadow)}.dialog-panel>header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}.dialog-panel h2{margin:0;font-size:25px;line-height:1.15;letter-spacing:-.035em}.dialog-panel header p{margin:8px 0 0;color:var(--muted)}.dialog-panel .icon-button{flex:0 0 auto}.side-dialog[open]{place-items:center end;padding-right:22px}.side-dialog .dialog-panel{width:min(440px,calc(100vw - 34px))}
   .setting-row{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}.setting-row label{font-weight:650}.setting-row>div{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}.setting-row input{width:72px;height:40px;border:1px solid var(--border);border-radius:7px;padding:0 8px;color:var(--text);background:var(--subtle);text-align:center}.notice{display:flex;gap:10px;margin:24px 0;padding:14px;border-left:2px solid var(--cyan);color:var(--muted);background:var(--subtle);font-size:12px}.notice svg{width:18px;color:var(--cyan)}.full{width:100%}
-  .dialog-icon{display:grid;place-items:center;width:48px;height:48px;margin-bottom:20px;border-radius:50%;color:var(--orange);background:color-mix(in srgb,var(--orange) 12%,transparent)}.dialog-icon svg{width:25px;height:25px}.list-label{margin:24px 0 9px;color:var(--quiet);font-size:10px;font-weight:750;letter-spacing:.09em;text-transform:uppercase}.confirm-accounts{max-height:265px;overflow:auto;border-block:1px solid var(--border)}.confirm-account{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;min-height:54px;border-bottom:1px solid var(--border)}.confirm-account:last-child{border-bottom:0}.confirm-account img{width:32px;height:32px;border-radius:50%;object-fit:cover}.confirm-account span{font-weight:630}.confirm-account small{color:var(--muted)}.confirm-dialog footer{display:flex;justify-content:flex-end;gap:9px;margin-top:24px}.danger-primary{border-color:var(--orange);background:var(--orange)}.danger-primary:hover:not(:disabled){background:#f27f00}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
-  @media(max-width:1250px){.app{grid-template-columns:88px minmax(0,1fr)}.brand{justify-content:center;padding-inline:0}.brand strong,.local-note div,.sidebar-summary{display:none}nav span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}nav button{justify-content:center;padding:0}.local-note{justify-content:center;margin-inline:0}.route-line{width:58%}.toolbar{flex-wrap:wrap}.toolbar-spacer{display:none}.search{flex:1;width:auto;min-width:250px}.table-head,.account-row{grid-template-columns:36px minmax(180px,1.2fr) minmax(125px,1fr) 110px 130px;column-gap:10px}.protect{min-width:104px}}
-  @media(max-width:820px){.app{grid-template-columns:1fr}.sidebar{display:none}.topbar{padding-inline:16px}.mobile-brand{display:flex;align-items:center;gap:8px}.mobile-brand img{width:36px;height:36px}.mobile-brand strong{display:none}.session{flex:1}.workspace{padding:30px 16px 22px}.page-heading{align-items:flex-start}.page-heading p{font-size:14px}.view-switch{order:3;width:100%}.view-switch button{flex:1}.table-head{display:none}.table{border-inline:0;border-radius:0}.account-row{grid-template-columns:34px minmax(0,1fr) 70px 112px;padding-inline:4px}.handle{display:none}.mobile-handle{display:block!important}.actionbar{grid-template-columns:auto 1fr auto;padding-inline:16px}.selection{display:none}.safety-copy span{display:none}.action{min-width:185px}}
-  @media(max-width:600px){.shell{grid-template-rows:62px 3px minmax(0,1fr) auto}.topbar{gap:8px}.session{display:none}.language-menu summary{min-width:72px}.language-menu summary svg:first-child{display:none}.theme-toggle{width:68px;grid-template-columns:32px 32px}.theme-toggle i{width:30px;height:30px}.app[data-theme=dark] .theme-toggle i{transform:translateX(32px)}.page-heading{display:grid;margin-bottom:26px}.page-heading h1{font-size:32px}.scan-actions{width:100%}.scan-actions button{flex:1}.search{min-width:100%}.toolbar .secondary{flex:1}.view-switch{overflow-x:auto}.view-switch button{min-width:max-content}.account-row{grid-template-columns:30px minmax(0,1fr) 62px;min-height:84px}.account-row .protect{grid-column:2;min-width:0;width:fit-content;margin-top:-8px}.avatar{width:40px;height:40px}.follows{justify-self:end}.actionbar{grid-template-columns:1fr;min-height:82px;padding-block:12px}.safety-mark,.safety-copy{display:none}.action{width:100%;min-height:50px}.confirm-dialog footer{flex-direction:column-reverse}.confirm-dialog footer button{width:100%}}
+  .dialog-icon{display:grid;place-items:center;width:48px;height:48px;margin-bottom:20px;border-radius:50%;color:var(--orange);background:color-mix(in srgb,var(--orange) 12%,transparent)}.dialog-icon svg{width:25px;height:25px}.list-label{margin:24px 0 9px;color:var(--quiet);font-size:10px;font-weight:750;letter-spacing:.09em;text-transform:uppercase}.confirm-accounts{max-height:265px;overflow:auto;border-block:1px solid var(--border)}.confirm-account{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;min-height:54px;border-bottom:1px solid var(--border)}.confirm-account:last-child{border-bottom:0}.confirm-account img{width:32px;height:32px;border-radius:50%;object-fit:cover}.confirm-account span{font-weight:630}.confirm-account small{color:var(--muted)}.confirm-dialog footer{display:flex;justify-content:flex-end;gap:9px;margin-top:24px}.danger-primary{border-color:var(--orange);background:var(--orange)}.danger-primary:hover:not(:disabled){background:#f27f00}.guided-account{display:grid;gap:14px;padding:22px;border:1px solid var(--border);border-radius:10px;background:var(--subtle)}.guided-account strong{font-size:23px;letter-spacing:-.03em}.guided-account .primary{width:fit-content}.guided-account+.notice{margin-bottom:0}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+  @media(max-width:1350px){.toolbar{flex-wrap:wrap}.toolbar-spacer{display:none}.search{flex:1;width:auto;min-width:250px}}
+  @media(max-width:1250px){.app{grid-template-columns:88px minmax(0,1fr)}.brand{justify-content:center;padding-inline:0}.brand strong,.local-note div,.sidebar-summary{display:none}nav span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}nav button{justify-content:center;padding:0}.local-note{justify-content:center;margin-inline:0}.route-line{width:58%}.table-head,.account-row{grid-template-columns:36px minmax(180px,1.2fr) minmax(125px,1fr) 110px 130px;column-gap:10px}.app[data-platform=tiktok] .table-head,.app[data-platform=tiktok] .account-row{grid-template-columns:minmax(180px,1fr) 110px 130px}.protect{min-width:104px}}
+  @media(max-width:820px){.app{grid-template-columns:1fr}.sidebar{display:none}.topbar{padding-inline:16px}.mobile-brand{display:flex;align-items:center;gap:8px}.mobile-brand img{width:36px;height:36px}.mobile-brand strong{display:none}.session{flex:1}.workspace{padding:30px 16px 22px}.page-heading{align-items:flex-start}.page-heading p{font-size:14px}.view-switch{order:3;width:100%}.view-switch button{flex:1}.table-head{display:none}.table{border-inline:0;border-radius:0}.account-row{grid-template-columns:34px minmax(0,1fr) 70px 112px;padding-inline:4px}.app[data-platform=tiktok] .account-row{grid-template-columns:minmax(0,1fr) 70px 112px}.handle{display:none}.mobile-handle{display:block!important}.app[data-platform=tiktok] .mobile-handle{display:none!important}.actionbar{grid-template-columns:auto 1fr auto;padding-inline:16px}.selection{display:none}.safety-copy span{display:none}.action{min-width:185px}}
+  @media(max-width:600px){.shell{grid-template-rows:62px 3px minmax(0,1fr) auto}.topbar{gap:8px}.session{display:none}.language-menu summary{min-width:72px}.language-menu summary svg:first-child{display:none}.theme-toggle{width:68px;grid-template-columns:32px 32px}.theme-toggle i{width:30px;height:30px}.app[data-theme=dark] .theme-toggle i{transform:translateX(32px)}.page-heading{display:grid;margin-bottom:26px}.page-heading h1{font-size:32px}.scan-actions{width:100%}.scan-actions button{flex:1}.search{min-width:100%}.toolbar .secondary{flex:1}.view-switch{overflow-x:auto}.view-switch button{min-width:max-content}.account-row{grid-template-columns:30px minmax(0,1fr) 62px;min-height:84px}.account-row .protect{grid-column:2;min-width:0;width:fit-content;margin-top:-8px}.app[data-platform=tiktok] .account-row{grid-template-columns:minmax(0,1fr) 62px}.app[data-platform=tiktok] .account-row .protect{grid-column:1}.avatar{width:40px;height:40px}.follows{justify-self:end}.actionbar{grid-template-columns:1fr;min-height:82px;padding-block:12px}.safety-mark,.safety-copy{display:none}.action{width:100%;min-height:50px}.confirm-dialog footer{flex-direction:column-reverse}.confirm-dialog footer button{width:100%}}
   @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
 `;
 
-if (!instagramHost && !previewMode) alert('Open Instagram before running Follow Audit.');
+if (!instagramHost && !tiktokHost && !previewMode) alert('Open Instagram or TikTok before running Follow Audit.');
 else if (!document.getElementById(HOST_ID)) start();

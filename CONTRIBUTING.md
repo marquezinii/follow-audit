@@ -1,6 +1,6 @@
 # Contributing to Follow Audit
 
-Thank you for helping improve the project. Keep changes focused, reviewable, and safe for an application that operates inside an authenticated browser session.
+Thank you for helping improve the project. Keep changes focused, reviewable, and safe for an application that handles authenticated Instagram requests and local TikTok exports.
 
 ## Development setup
 
@@ -9,7 +9,7 @@ npm ci
 npm run dev
 ```
 
-Node.js 22 is required. The local preview uses sample data and never contacts Instagram.
+Node.js 22 is required. The local preview uses sample data and never contacts either platform.
 
 ## Before opening a pull request
 
@@ -25,6 +25,7 @@ Request-handling changes must cover malformed payloads, non-success responses, c
 
 - Prefer the browser platform and existing code over new dependencies.
 - Keep Instagram access inside `src/instagram.ts`.
+- Keep TikTok export parsing inside `src/tiktok.ts`; TikTok actions remain read-only.
 - Keep deterministic business logic inside `src/core.ts`.
 - Never commit generated experiments, credentials, session data, or real account responses.
 - Do not edit `public/dist.js` manually; regenerate it with `npm run build`.

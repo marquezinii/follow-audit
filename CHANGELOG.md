@@ -2,6 +2,13 @@
 
 All notable project changes are documented here.
 
+## Unreleased
+
+### Added
+
+- Read-only TikTok audits from the official follower and following JSON export files.
+- Automatic Instagram or TikTok mode selection in the same distributable script.
+
 ## 2.1.0 — 2026-09-07
 
 ### Added

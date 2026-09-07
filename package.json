@@ -2,7 +2,7 @@
   "name": "follow-audit",
   "version": "2.1.0",
   "private": true,
-  "description": "A local-first workspace for reviewing your Instagram followers and following.",
+  "description": "A local-first workspace for reviewing your Instagram and TikTok followers and following.",
   "license": "MIT",
   "author": "marquezinii",
   "homepage": "https://marquezinii.github.io/follow-audit/",

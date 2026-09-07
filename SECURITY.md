@@ -12,11 +12,13 @@ Follow Audit must never:
 
 - persist or export session cookies or CSRF tokens;
 - send account data to a project-controlled server;
+- persist or upload selected TikTok export files;
 - execute an unfollow without explicit confirmation;
 - retry an unfollow request automatically;
 - include protected accounts in the action queue;
 - continue an active operation after cancellation.
+- automate TikTok relationship changes.
 
 ## Supported version
 
-Security fixes target the current `main` branch. Private Instagram endpoints are outside the project's control and can change without notice.
+Security fixes target the current `main` branch. Private Instagram endpoints and TikTok export formats are outside the project's control and can change without notice.

@@ -5,7 +5,7 @@
 <h1 align="center">Follow Audit</h1>
 
 <p align="center">
-  A focused, local-first workspace for reviewing who you follow and who follows you on Instagram.
+  A focused, local-first workspace for reviewing who you follow and who follows you on Instagram or TikTok.
   <br>
   Inspect first. Protect what matters. Act only when you are ready.
 </p>
@@ -23,23 +23,24 @@
 
 ---
 
-Follow Audit runs entirely inside your browser session. It scans both sides of your Instagram connections, highlights non-mutual relationships, keeps a private protection list, and turns unfollows or follower removals into an explicit review process.
+Follow Audit runs entirely inside your browser. On Instagram, it scans both sides of your connections and provides an explicit review flow for account actions. On TikTok, it reads the follower and following JSON files from your official data export, compares them locally, and keeps all account changes manual.
 
 No account data is sent to a project server. Session credentials are read only when a request needs them and are never stored by the application.
 
 > [!CAUTION]
-> Follow Audit relies on private Instagram web endpoints. Those endpoints can change without notice, and high-volume account actions may trigger platform limits. This project is not affiliated with, endorsed by, or sponsored by Instagram or Meta.
+> Instagram support relies on private web endpoints. Those endpoints can change without notice, and high-volume account actions may trigger platform limits. TikTok support is read-only and uses only files you explicitly select. This project is not affiliated with or endorsed by Instagram, Meta, TikTok, or ByteDance.
 
 ## What it does
 
 | Capability | Behavior |
 | --- | --- |
-| Following and follower audits | Loads either list page by page and deduplicates results. |
+| Instagram audits | Loads either list page by page and deduplicates results. |
+| TikTok audits | Imports the official `Follower.json` and `Following.json` files and derives mutual relationships locally. |
 | Focused review | Highlights accounts that do not follow you back or followers you do not follow back. |
 | Protected accounts | Stores protected account IDs locally and permanently excludes them from the action queue. |
-| Deliberate actions | Unfollows accounts or removes followers only after confirmation, one at a time, with cancellation. |
+| Deliberate actions | On Instagram, unfollows or removes followers only after confirmation, one at a time, with cancellation. TikTok offers a local guided-review queue that opens one profile at a time; changes remain manual. |
 | Portable results | Exports the current review view as spreadsheet-safe CSV. |
-| Local preview | Uses deterministic sample data and never contacts Instagram during UI development. |
+| Local preview | Uses deterministic sample data and never contacts either platform during UI development. |
 
 ## Safety by construction
 
@@ -57,27 +58,29 @@ The destructive path is intentionally slower than the review path:
 
 1. Open the [Follow Audit website](https://marquezinii.github.io/follow-audit/).
 2. Select **Copy script**.
-3. Sign in to [Instagram](https://www.instagram.com/) in the same browser.
+3. Open [Instagram](https://www.instagram.com/) or [TikTok](https://www.tiktok.com/) in the same browser.
 4. Open your browser's Developer Tools, switch to **Console**, paste the script, and press <kbd>Enter</kbd>.
-5. Choose **Following** or **Followers**, run the audit, and select only the accounts you intend to unfollow or remove.
+5. On Instagram, choose a list and run the audit. On TikTok, import the extracted `Follower.json` and `Following.json` files from **Settings and privacy → Account → Download your data**; request JSON format.
 
-The bundle refuses to start outside `instagram.com`, except on localhost where it enters preview mode.
+The bundle refuses to start outside `instagram.com` or `tiktok.com`, except on localhost where it enters preview mode. Add `?platform=tiktok` to the preview URL to inspect the TikTok read-only state.
 
 ## How it works
 
 ```mermaid
 flowchart LR
-    A[Authenticated browser session] --> B[Paginated following or follower scan]
-    B --> C[Runtime payload validation]
-    C --> D[Local review workspace]
-    D --> E{User decision}
-    E -->|Protect| F[Local protected IDs]
-    E -->|Export| G[CSV file]
-    E -->|Confirm unfollow or removal| H[Sequential action queue]
-    H --> I[Success or failure per account]
+    A{Platform} -->|Instagram| B[Authenticated paginated scan]
+    A -->|TikTok| C[Official JSON export]
+    B --> D[Runtime payload validation]
+    C --> D
+    D --> E[Local review workspace]
+    E --> F{User decision}
+    F -->|Protect| G[Local protected IDs]
+    F -->|Export| H[CSV file]
+    F -->|Instagram confirmation| I[Sequential action queue]
+    F -->|TikTok| J[Guided manual profile review]
 ```
 
-The UI is mounted in a Shadow DOM overlay, so the application remains isolated from Instagram's styles. The production bundle contains no framework and ships with zero runtime dependencies.
+The UI is mounted in a Shadow DOM overlay, so the application remains isolated from the platform's styles. The production bundle contains no framework and ships with zero runtime dependencies.
 
 ## Development
 
@@ -111,6 +114,7 @@ This single command runs ESLint, the Node test suite, TypeScript type checking, 
 src/
 ├── core.ts          # validation, pagination, cancellation, serial execution
 ├── instagram.ts     # authenticated Instagram request boundary
+├── tiktok.ts        # official export parser and relationship comparison
 └── main.ts          # Shadow DOM interface and browser state
 tests/
 └── core.test.ts     # deterministic checks for the critical logic
@@ -124,7 +128,7 @@ scripts/             # build copy and local static server
 | --- | --- |
 | Session cookies | Read by the browser request boundary; never persisted by Follow Audit. |
 | CSRF token | Read immediately before an unfollow or follower-removal request; never exported or logged. |
-| Following and follower lists | Held in memory for the current run. |
+| Following and follower lists | Held in memory for the current run. Selected TikTok files are never uploaded. |
 | Protected IDs | Stored only in the current browser's `localStorage`. |
 | Analytics | None. |
 | Project backend | None. |
@@ -133,7 +137,9 @@ scripts/             # build copy and local static server
 
 - Instagram can change its internal request contracts at any time.
 - A successful HTTP response does not guarantee that the platform will allow continued high-volume activity.
-- The tool must run in the same browser profile as the authenticated Instagram session.
+- Instagram audits must run in the same browser profile as the authenticated session.
+- TikTok exports can lag behind recent account changes and must be requested in JSON format and extracted before import.
+- TikTok actions are intentionally manual; Follow Audit does not scrape or call private TikTok relationship endpoints.
 - Closing or reloading the tab ends the active scan or queue.
 
 ## Contributing
