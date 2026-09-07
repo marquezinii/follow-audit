@@ -2,6 +2,7 @@ import { parseFollowersPage, parseFollowingPage, wait, type AccountPage } from '
 
 const FOLLOWING_QUERY = '3dec7e2c57367ef3da3d987d89f9dbc8';
 const FOLLOWERS_QUERY = 'c76146de99bb02f6415203be841dd25a';
+const WEB_APP_ID = '936619743392459';
 
 class HttpError extends Error {
   constructor(readonly status: number) {
@@ -115,6 +116,7 @@ export class InstagramGateway {
       headers: {
         'content-type': 'application/x-www-form-urlencoded',
         'x-csrftoken': csrf,
+        'x-ig-app-id': WEB_APP_ID,
         'x-requested-with': 'XMLHttpRequest',
       },
       signal,

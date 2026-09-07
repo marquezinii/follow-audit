@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { parseFollowersPage, parseFollowingPage, runSequential, scanAccounts, type Account } from '../src/core';
 import { format, resolveLocale, translations } from '../src/i18n';
+import { InstagramGateway } from '../src/instagram';
 
 const account = (id: string): Account => ({
   id,
@@ -108,6 +109,28 @@ void test('cancellation interrupts the queue delay', async () => {
   setTimeout(() => controller.abort(), 5);
 
   await assert.rejects(run, /abort|cancel/i);
+});
+
+void test('identifies follower-removal requests as the Instagram web client', async () => {
+  const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  const originalFetch = globalThis.fetch;
+  let headers: Headers | undefined;
+
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: { cookie: 'csrftoken=test-token' } });
+  globalThis.fetch = (_url, init) => {
+    headers = new Headers(init?.headers);
+    return Promise.resolve(new Response('', { status: 200 }));
+  };
+
+  try {
+    await new InstagramGateway().removeFollower('12', new AbortController().signal);
+    assert.equal(headers?.get('x-ig-app-id'), '936619743392459');
+    assert.equal(headers?.get('x-csrftoken'), 'test-token');
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalDocument) Object.defineProperty(globalThis, 'document', originalDocument);
+    else Reflect.deleteProperty(globalThis, 'document');
+  }
 });
 
 void test('resolves supported locales and formats translated values', () => {
