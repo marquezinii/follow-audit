@@ -277,8 +277,9 @@ function start(): void {
         { onProgress: (loaded, total) => { progress = total > 0 ? Math.min(99, Math.round((loaded / total) * 100)) : 1; setStatus('status_loading_progress', { loaded, total }); render(); } },
       );
       mode = 'ready'; progress = 100; setStatus('status_complete', { count: workspace.accounts.length });
-    } catch {
+    } catch (error) {
       const aborted = controller.signal.aborted; mode = aborted ? 'idle' : 'error'; progress = 0;
+      if (!aborted) globalThis.console.error('[Follow Audit] Scan failed:', error);
       setStatus(aborted ? 'status_cancelled' : 'unexpected_error');
     } finally { controller = undefined; render(); }
   };

@@ -2,6 +2,8 @@ import { parseFollowersPage, parseFollowingPage, wait, type AccountPage } from '
 
 const WEB_APP_ID = '936619743392459';
 
+type ListName = 'followers' | 'following';
+
 class HttpError extends Error {
   constructor(readonly status: number) {
     super(`Instagram responded with HTTP ${status}.`);
@@ -14,7 +16,7 @@ function cookie(name: string): string | undefined {
   return part ? decodeURIComponent(part.slice(prefix.length)) : undefined;
 }
 
-function listUrl(kind: 'followers' | 'following', cursor: string | undefined): URL {
+function listUrl(kind: ListName, cursor: string | undefined): URL {
   const userId = cookie('ds_user_id');
   if (!userId || !/^\d+$/.test(userId)) {
     throw new Error('The current Instagram session could not be identified.');
@@ -30,28 +32,30 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function accountsMissingRelationships(payload: unknown): string[] {
-  if (!isObject(payload) || !Array.isArray(payload.users)) return [];
-  return payload.users.flatMap(user => {
-    if (!isObject(user)) return [];
-    const id = typeof user.pk === 'string' || (typeof user.pk === 'number' && Number.isSafeInteger(user.pk)) ? String(user.pk) : '';
-    const status = user.friendship_status;
-    return /^\d+$/.test(id) && (!isObject(status) || typeof status.following !== 'boolean' || typeof status.followed_by !== 'boolean')
-      ? [id]
-      : [];
-  });
+function userId(user: Record<string, unknown>): string {
+  return typeof user.pk === 'string' || (typeof user.pk === 'number' && Number.isSafeInteger(user.pk)) ? String(user.pk) : '';
 }
 
-function mergeRelationships(payload: unknown, statuses: unknown): unknown {
-  if (!isObject(payload) || !Array.isArray(payload.users) || !isObject(statuses)) return payload;
-  return {
-    ...payload,
-    users: payload.users.map((user: unknown) => {
-      if (!isObject(user)) return user;
-      const relationship = statuses[String(user.pk)];
-      return isObject(relationship) ? { ...user, friendship_status: relationship } : user;
-    }),
-  };
+function hasRelationship(user: Record<string, unknown>): boolean {
+  const status = user.friendship_status;
+  return isObject(status) && typeof status.following === 'boolean' && typeof status.followed_by === 'boolean';
+}
+
+function usersOf(payload: unknown): Record<string, unknown>[] {
+  if (!isObject(payload) || !Array.isArray(payload.users)) {
+    throw new Error('Instagram did not return the expected data.');
+  }
+  return payload.users.filter(isObject);
+}
+
+/** The web list endpoints omit friendship_status, so the opposite list supplies it. */
+function withRelationships(payload: unknown, kind: ListName, otherIds: ReadonlySet<string>): unknown {
+  const users = usersOf(payload).map(user => {
+    if (hasRelationship(user)) return user;
+    const inOther = otherIds.has(userId(user));
+    return { ...user, friendship_status: kind === 'following' ? { following: true, followed_by: inOther } : { followed_by: true, following: inOther } };
+  });
+  return { ...(payload as Record<string, unknown>), users };
 }
 
 async function request(url: URL | string, init: RequestInit, timeoutMs = 15_000): Promise<Response> {
@@ -75,12 +79,46 @@ export class InstagramGateway {
     return this.loadList('followers', cursor, signal, parseFollowersPage);
   }
 
+  private readonly relatedIds = new Map<ListName, Promise<Set<string>>>();
+
   private async loadList(
-    kind: 'followers' | 'following',
+    kind: ListName,
     cursor: string | undefined,
     signal: AbortSignal,
     parse: (payload: unknown) => AccountPage,
   ): Promise<AccountPage> {
+    const payload = await this.fetchPage(kind, cursor, signal);
+    if (usersOf(payload).every(hasRelationship)) {
+      return parse(payload);
+    }
+
+    const other = kind === 'following' ? 'followers' : 'following';
+    if (!cursor) this.relatedIds.delete(other);
+    let ids = this.relatedIds.get(other);
+    if (!ids) {
+      ids = this.collectIds(other, signal);
+      this.relatedIds.set(other, ids);
+      ids.catch(() => this.relatedIds.delete(other));
+    }
+    return parse(withRelationships(payload, kind, await ids));
+  }
+
+  private async collectIds(kind: ListName, signal: AbortSignal): Promise<Set<string>> {
+    const ids = new Set<string>();
+    const seen = new Set<string>();
+    let cursor: string | undefined;
+    do {
+      const payload = await this.fetchPage(kind, cursor, signal);
+      for (const user of usersOf(payload)) ids.add(userId(user));
+      const next = isObject(payload) && typeof payload.next_max_id === 'string' && payload.next_max_id ? payload.next_max_id : undefined;
+      if (next && seen.has(next)) throw new Error('Instagram returned a repeated pagination cursor.');
+      if (next) seen.add(next);
+      cursor = next;
+    } while (cursor);
+    return ids;
+  }
+
+  private async fetchPage(kind: ListName, cursor: string | undefined, signal: AbortSignal): Promise<unknown> {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         const response = await request(listUrl(kind, cursor), {
@@ -92,28 +130,7 @@ export class InstagramGateway {
         if (!response.ok) {
           throw new HttpError(response.status);
         }
-        let payload = await response.json() as unknown;
-        const missing = accountsMissingRelationships(payload);
-        if (missing.length > 0) {
-          const csrf = cookie('csrftoken');
-          if (!csrf) throw new Error('The current session has no CSRF token.');
-          const relationshipsResponse = await request('/api/v1/friendships/show_many/', {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-              'content-type': 'application/x-www-form-urlencoded',
-              'x-csrftoken': csrf,
-              'x-ig-app-id': WEB_APP_ID,
-              'x-requested-with': 'XMLHttpRequest',
-            },
-            body: new URLSearchParams({ user_ids: missing.join(',') }),
-            signal,
-          });
-          if (!relationshipsResponse.ok) throw new HttpError(relationshipsResponse.status);
-          const relationshipsPayload = await relationshipsResponse.json() as unknown;
-          payload = mergeRelationships(payload, isObject(relationshipsPayload) ? relationshipsPayload.friendship_statuses : undefined);
-        }
-        return parse(payload);
+        return await response.json() as unknown;
       } catch (error) {
         if (signal.aborted) {
           throw error;

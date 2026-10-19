@@ -129,30 +129,30 @@ void test('loads following accounts from the current Instagram friendship endpoi
 
   Object.defineProperty(globalThis, 'document', { configurable: true, value: { cookie: 'ds_user_id=42; csrftoken=test-token' } });
   Object.defineProperty(globalThis, 'location', { configurable: true, value: { origin: 'https://www.instagram.com' } });
+  const user = (pk: string) => ({
+    pk, username: `account_${pk}`, full_name: `Account ${pk}`, profile_pic_url: 'https://example.test/avatar.png',
+    is_private: false, is_verified: true,
+  });
   globalThis.fetch = (input, init) => {
     const requestUrl = input instanceof Request ? input.url : input;
-    requests.push({ url: new URL(requestUrl, 'https://www.instagram.com'), init });
-    return Promise.resolve(requests.length === 1
-      ? Response.json({
-        users: [{
-          pk: '10', username: 'account_10', full_name: 'Account 10', profile_pic_url: 'https://example.test/avatar.png',
-          is_private: false, is_verified: true,
-        }],
-        next_max_id: 'next',
-        status: 'ok',
-      })
-      : Response.json({ friendship_statuses: { 10: { followed_by: false, following: true } }, status: 'ok' }));
+    const url = new URL(requestUrl, 'https://www.instagram.com');
+    requests.push({ url, init });
+    return Promise.resolve(Response.json(url.pathname.endsWith('/following/')
+      ? { users: [user('10'), user('12')], next_max_id: 'next', status: 'ok' }
+      : url.searchParams.get('max_id') === 'more'
+        ? { users: [user('12')], next_max_id: null, status: 'ok' }
+        : { users: [user('10')], next_max_id: 'more', status: 'ok' }));
   };
 
   try {
     const page = await new InstagramGateway().loadFollowing(undefined, new AbortController().signal);
     assert.equal(requests[0]?.url.pathname, '/api/v1/friendships/42/following/');
     assert.equal(requests[0]?.url.searchParams.get('count'), '50');
-    assert.equal(requests[1]?.url.pathname, '/api/v1/friendships/show_many/');
-    assert.ok(requests[1]?.init?.body instanceof URLSearchParams);
-    assert.equal(requests[1].init.body.get('user_ids'), '10');
-    assert.equal(page.accounts[0]?.username, 'account_10');
-    assert.equal(page.accounts[0]?.followsYou, false);
+    assert.deepEqual(requests.slice(1).map(request => request.url.pathname), Array(2).fill('/api/v1/friendships/42/followers/'));
+    assert.deepEqual(page.accounts.map(account => [account.username, account.followsYou, account.youFollow]), [
+      ['account_10', true, true],
+      ['account_12', true, true],
+    ]);
     assert.equal(page.nextCursor, 'next');
   } finally {
     globalThis.fetch = originalFetch;
