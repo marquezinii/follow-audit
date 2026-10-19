@@ -36,28 +36,32 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 function parseAccount(value: unknown, kind: ListKind): Account {
+  const id = isObject(value) && (typeof value.pk === 'string' || (typeof value.pk === 'number' && Number.isSafeInteger(value.pk)))
+    ? String(value.pk)
+    : '';
+  const relationship = isObject(value) ? value.friendship_status : undefined;
   if (!isObject(value)
-    || typeof value.id !== 'string'
-    || !/^\d+$/.test(value.id)
+    || !/^\d+$/.test(id)
     || typeof value.username !== 'string'
     || typeof value.full_name !== 'string'
     || typeof value.profile_pic_url !== 'string'
     || typeof value.is_private !== 'boolean'
     || typeof value.is_verified !== 'boolean'
-    || (kind === 'following' && typeof value.follows_viewer !== 'boolean')
-    || (kind === 'followers' && typeof value.followed_by_viewer !== 'boolean')) {
+    || !isObject(relationship)
+    || typeof relationship.following !== 'boolean'
+    || typeof relationship.followed_by !== 'boolean') {
     throw new Error('The response contains an invalid account.');
   }
 
   return {
-    id: value.id,
+    id,
     username: value.username,
     name: value.full_name,
     avatarUrl: value.profile_pic_url,
     isPrivate: value.is_private,
     isVerified: value.is_verified,
-    followsYou: kind === 'followers' || value.follows_viewer as boolean,
-    youFollow: kind === 'following' || value.followed_by_viewer as boolean,
+    followsYou: kind === 'followers' || relationship.followed_by,
+    youFollow: kind === 'following' || relationship.following,
   };
 }
 
@@ -67,35 +71,19 @@ function parseAccount(value: unknown, kind: ListKind): Account {
  * @throws {Error} When the payload does not match the expected following-page contract.
  */
 function parseAccountPage(payload: unknown, kind: ListKind): AccountPage {
-  if (!isObject(payload) || !isObject(payload.data) || !isObject(payload.data.user)) {
+  if (!isObject(payload)
+    || payload.status !== 'ok'
+    || !Array.isArray(payload.users)
+    || (payload.next_max_id !== null && payload.next_max_id !== undefined && typeof payload.next_max_id !== 'string')) {
     throw new Error('Instagram did not return the expected data.');
   }
 
-  const page = payload.data.user[kind === 'following' ? 'edge_follow' : 'edge_followed_by'];
-  if (!isObject(page)
-    || typeof page.count !== 'number'
-    || !Number.isSafeInteger(page.count)
-    || page.count < 0
-    || !Array.isArray(page.edges)
-    || !isObject(page.page_info)
-    || typeof page.page_info.has_next_page !== 'boolean'
-    || (page.page_info.end_cursor !== null && typeof page.page_info.end_cursor !== 'string')) {
-    throw new Error(`The ${kind}-list response format has changed.`);
-  }
-
-  const accounts = page.edges.map(edge => {
-    if (!isObject(edge)) {
-      throw new Error('The response contains an invalid entry.');
-    }
-    return parseAccount(edge.node, kind);
-  });
+  const accounts = payload.users.map(user => parseAccount(user, kind));
 
   return {
     accounts,
-    total: page.count,
-    nextCursor: page.page_info.has_next_page && page.page_info.end_cursor
-      ? page.page_info.end_cursor
-      : undefined,
+    total: accounts.length,
+    nextCursor: payload.next_max_id || undefined,
   };
 }
 
@@ -137,7 +125,7 @@ export async function scanAccounts(
     for (const account of page.accounts) {
       accounts.set(account.id, account);
     }
-    options.onProgress?.(accounts.size, page.total);
+    options.onProgress?.(accounts.size, Math.max(page.total, accounts.size + (page.nextCursor ? 1 : 0)));
     cursor = page.nextCursor;
     if (!cursor) {
       return [...accounts.values()];

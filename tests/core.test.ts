@@ -18,46 +18,27 @@ const account = (id: string): Account => ({
 
 void test('parses valid pages and rejects malformed responses', () => {
   const result = parseFollowingPage({
-    data: {
-      user: {
-        edge_follow: {
-          count: 1,
-          edges: [{ node: {
-            id: '10',
-            username: 'account_10',
-            full_name: 'Account 10',
-            profile_pic_url: 'https://example.test/avatar.png',
-            is_private: false,
-            is_verified: true,
-            follows_viewer: false,
-          } }],
-          page_info: { has_next_page: false, end_cursor: null },
-        },
-      },
-    },
+    users: [{
+      pk: '10', username: 'account_10', full_name: 'Account 10', profile_pic_url: 'https://example.test/avatar.png',
+      is_private: false, is_verified: true, friendship_status: { followed_by: false, following: true },
+    }],
+    next_max_id: null,
+    status: 'ok',
   });
 
   assert.equal(result.accounts[0]?.name, 'Account 10');
-  assert.throws(() => parseFollowingPage({ data: { user: {} } }));
-  assert.throws(() => parseFollowingPage({
-    data: { user: { edge_follow: { count: -1, edges: [], page_info: { has_next_page: false, end_cursor: null } } } },
-  }));
+  assert.throws(() => parseFollowingPage({ users: [], status: 'fail' }));
+  assert.throws(() => parseFollowingPage({ users: [], next_max_id: 123, status: 'ok' }));
 });
 
 void test('parses followers and records whether you follow them back', () => {
   const result = parseFollowersPage({
-    data: {
-      user: {
-        edge_followed_by: {
-          count: 1,
-          edges: [{ node: {
-            id: '11', username: 'account_11', full_name: 'Account 11', profile_pic_url: 'https://example.test/avatar.png',
-            is_private: false, is_verified: false, followed_by_viewer: false,
-          } }],
-          page_info: { has_next_page: false, end_cursor: null },
-        },
-      },
-    },
+    users: [{
+      pk: 11, username: 'account_11', full_name: 'Account 11', profile_pic_url: 'https://example.test/avatar.png',
+      is_private: false, is_verified: false, friendship_status: { followed_by: true, following: false },
+    }],
+    next_max_id: null,
+    status: 'ok',
   });
 
   assert.equal(result.accounts[0]?.followsYou, true);
@@ -137,6 +118,48 @@ void test('identifies follower-removal requests as the Instagram web client', as
     globalThis.fetch = originalFetch;
     if (originalDocument) Object.defineProperty(globalThis, 'document', originalDocument);
     else Reflect.deleteProperty(globalThis, 'document');
+  }
+});
+
+void test('loads following accounts from the current Instagram friendship endpoint', async () => {
+  const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  const originalLocation = Object.getOwnPropertyDescriptor(globalThis, 'location');
+  const originalFetch = globalThis.fetch;
+  const requests: Array<{ url: URL; init?: RequestInit }> = [];
+
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: { cookie: 'ds_user_id=42; csrftoken=test-token' } });
+  Object.defineProperty(globalThis, 'location', { configurable: true, value: { origin: 'https://www.instagram.com' } });
+  globalThis.fetch = (input, init) => {
+    const requestUrl = input instanceof Request ? input.url : input;
+    requests.push({ url: new URL(requestUrl, 'https://www.instagram.com'), init });
+    return Promise.resolve(requests.length === 1
+      ? Response.json({
+        users: [{
+          pk: '10', username: 'account_10', full_name: 'Account 10', profile_pic_url: 'https://example.test/avatar.png',
+          is_private: false, is_verified: true,
+        }],
+        next_max_id: 'next',
+        status: 'ok',
+      })
+      : Response.json({ friendship_statuses: { 10: { followed_by: false, following: true } }, status: 'ok' }));
+  };
+
+  try {
+    const page = await new InstagramGateway().loadFollowing(undefined, new AbortController().signal);
+    assert.equal(requests[0]?.url.pathname, '/api/v1/friendships/42/following/');
+    assert.equal(requests[0]?.url.searchParams.get('count'), '50');
+    assert.equal(requests[1]?.url.pathname, '/api/v1/friendships/show_many/');
+    assert.ok(requests[1]?.init?.body instanceof URLSearchParams);
+    assert.equal(requests[1].init.body.get('user_ids'), '10');
+    assert.equal(page.accounts[0]?.username, 'account_10');
+    assert.equal(page.accounts[0]?.followsYou, false);
+    assert.equal(page.nextCursor, 'next');
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalDocument) Object.defineProperty(globalThis, 'document', originalDocument);
+    else Reflect.deleteProperty(globalThis, 'document');
+    if (originalLocation) Object.defineProperty(globalThis, 'location', originalLocation);
+    else Reflect.deleteProperty(globalThis, 'location');
   }
 });
 

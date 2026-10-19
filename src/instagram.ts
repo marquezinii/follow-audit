@@ -1,7 +1,5 @@
 import { parseFollowersPage, parseFollowingPage, wait, type AccountPage } from './core';
 
-const FOLLOWING_QUERY = '3dec7e2c57367ef3da3d987d89f9dbc8';
-const FOLLOWERS_QUERY = 'c76146de99bb02f6415203be841dd25a';
 const WEB_APP_ID = '936619743392459';
 
 class HttpError extends Error {
@@ -16,26 +14,44 @@ function cookie(name: string): string | undefined {
   return part ? decodeURIComponent(part.slice(prefix.length)) : undefined;
 }
 
-function listUrl(queryHash: string, cursor: string | undefined): URL {
+function listUrl(kind: 'followers' | 'following', cursor: string | undefined): URL {
   const userId = cookie('ds_user_id');
   if (!userId || !/^\d+$/.test(userId)) {
     throw new Error('The current Instagram session could not be identified.');
   }
 
-  const variables: Record<string, unknown> = {
-    id: userId,
-    first: 50,
-    include_reel: false,
-    fetch_mutual: false,
-  };
-  if (cursor) {
-    variables.after = cursor;
-  }
-
-  const url = new URL('/graphql/query/', location.origin);
-  url.searchParams.set('query_hash', queryHash);
-  url.searchParams.set('variables', JSON.stringify(variables));
+  const url = new URL(`/api/v1/friendships/${userId}/${kind}/`, location.origin);
+  url.searchParams.set('count', '50');
+  if (cursor) url.searchParams.set('max_id', cursor);
   return url;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function accountsMissingRelationships(payload: unknown): string[] {
+  if (!isObject(payload) || !Array.isArray(payload.users)) return [];
+  return payload.users.flatMap(user => {
+    if (!isObject(user)) return [];
+    const id = typeof user.pk === 'string' || (typeof user.pk === 'number' && Number.isSafeInteger(user.pk)) ? String(user.pk) : '';
+    const status = user.friendship_status;
+    return /^\d+$/.test(id) && (!isObject(status) || typeof status.following !== 'boolean' || typeof status.followed_by !== 'boolean')
+      ? [id]
+      : [];
+  });
+}
+
+function mergeRelationships(payload: unknown, statuses: unknown): unknown {
+  if (!isObject(payload) || !Array.isArray(payload.users) || !isObject(statuses)) return payload;
+  return {
+    ...payload,
+    users: payload.users.map((user: unknown) => {
+      if (!isObject(user)) return user;
+      const relationship = statuses[String(user.pk)];
+      return isObject(relationship) ? { ...user, friendship_status: relationship } : user;
+    }),
+  };
 }
 
 async function request(url: URL | string, init: RequestInit, timeoutMs = 15_000): Promise<Response> {
@@ -51,32 +67,53 @@ async function request(url: URL | string, init: RequestInit, timeoutMs = 15_000)
 export class InstagramGateway {
   /** Loads one validated page of accounts followed by the current user. */
   async loadFollowing(cursor: string | undefined, signal: AbortSignal): Promise<AccountPage> {
-    return this.loadList(FOLLOWING_QUERY, cursor, signal, parseFollowingPage);
+    return this.loadList('following', cursor, signal, parseFollowingPage);
   }
 
   /** Loads one validated page of accounts following the current user. */
   async loadFollowers(cursor: string | undefined, signal: AbortSignal): Promise<AccountPage> {
-    return this.loadList(FOLLOWERS_QUERY, cursor, signal, parseFollowersPage);
+    return this.loadList('followers', cursor, signal, parseFollowersPage);
   }
 
   private async loadList(
-    queryHash: string,
+    kind: 'followers' | 'following',
     cursor: string | undefined,
     signal: AbortSignal,
     parse: (payload: unknown) => AccountPage,
   ): Promise<AccountPage> {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        const response = await request(listUrl(queryHash, cursor), {
+        const response = await request(listUrl(kind, cursor), {
           method: 'GET',
           credentials: 'include',
-          headers: { accept: 'application/json' },
+          headers: { accept: 'application/json', 'x-ig-app-id': WEB_APP_ID },
           signal,
         });
         if (!response.ok) {
           throw new HttpError(response.status);
         }
-        return parse(await response.json());
+        let payload = await response.json() as unknown;
+        const missing = accountsMissingRelationships(payload);
+        if (missing.length > 0) {
+          const csrf = cookie('csrftoken');
+          if (!csrf) throw new Error('The current session has no CSRF token.');
+          const relationshipsResponse = await request('/api/v1/friendships/show_many/', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'content-type': 'application/x-www-form-urlencoded',
+              'x-csrftoken': csrf,
+              'x-ig-app-id': WEB_APP_ID,
+              'x-requested-with': 'XMLHttpRequest',
+            },
+            body: new URLSearchParams({ user_ids: missing.join(',') }),
+            signal,
+          });
+          if (!relationshipsResponse.ok) throw new HttpError(relationshipsResponse.status);
+          const relationshipsPayload = await relationshipsResponse.json() as unknown;
+          payload = mergeRelationships(payload, isObject(relationshipsPayload) ? relationshipsPayload.friendship_statuses : undefined);
+        }
+        return parse(payload);
       } catch (error) {
         if (signal.aborted) {
           throw error;
