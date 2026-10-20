@@ -3,12 +3,20 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#061522">
-    <link rel="icon" href="logo.png" type="image/png">
-    <title>Follow Audit — live preview</title>
-    <style>html,body{margin:0;min-height:100%;background:#071a2c}</style>
+    <meta name="robots" content="noindex">
+    <meta name="theme-color" content="#eef1f6">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <title>FollowAudit — live preview</title>
+    <style>
+      html,body{margin:0;min-height:100%;color:#566276;background:#eef1f6;font:15px/1.5 system-ui,sans-serif}
+      main{box-sizing:border-box;display:grid;place-items:center;min-height:100vh;padding:24px min(480px,40vw) 24px 24px;text-align:center}
+      p{max-width:30ch;margin:0}strong{display:block;margin-bottom:6px;color:#172235;font-size:17px}
+      @media(prefers-color-scheme:dark){html,body{color:#a9b4c6;background:#070c16}strong{color:#f2f5fa}}
+      @media(max-width:700px){main{display:none}}
+    </style>
   </head>
   <body>
+    <main><p><strong>Live preview with sample accounts</strong>Your Instagram or TikTok tab stays here, beside the panel. Nothing in this preview contacts either platform.</p></main>
     <script type="module">import(`./dist.js?v=${Date.now()}`);</script>
   </body>
 </html>

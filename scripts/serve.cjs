@@ -3,13 +3,16 @@ const { createServer } = require('node:http');
 const { extname, join, normalize } = require('node:path');
 
 const root = join(__dirname, '..', 'public');
+const port = Number(process.env.PORT) || 8080;
 const types = {
   '.css': 'text/css',
   '.html': 'text/html',
   '.js': 'text/javascript',
+  '.json': 'application/json',
   '.png': 'image/png',
-  '.ttf': 'font/ttf',
+  '.svg': 'image/svg+xml',
   '.webmanifest': 'application/manifest+json',
+  '.woff2': 'font/woff2',
 };
 
 createServer((request, response) => {
@@ -22,8 +25,8 @@ createServer((request, response) => {
   }
   response.setHeader('content-type', types[extname(file)] ?? 'application/octet-stream');
   createReadStream(file).pipe(response);
-}).listen(8080, '127.0.0.1', () => {
-  console.log('Preview: http://127.0.0.1:8080/');
+}).listen(port, '127.0.0.1', () => {
+  console.log(`Preview: http://127.0.0.1:${port}/  ·  Website: http://127.0.0.1:${port}/index.html`);
 });
 
 function stat(file) {

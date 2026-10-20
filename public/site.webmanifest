@@ -1,21 +1,15 @@
 {
-  "name": "Follow Audit",
-  "short_name": "Follow Audit",
-  "description": "A local-first workspace for reviewing your Instagram followers and following.",
+  "name": "FollowAudit",
+  "short_name": "FollowAudit",
+  "description": "Review Instagram and TikTok followers and following privately, in your browser.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f7fafc",
-  "theme_color": "#061522",
+  "background_color": "#f5f7fb",
+  "theme_color": "#0a5cff",
   "icons": [
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "logo.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }
   ]
 }

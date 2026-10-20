@@ -1,13 +1,32 @@
-import { parseFollowersPage, parseFollowingPage, wait, type AccountPage } from './core';
+import { parseFollowersPage, parseFollowingPage, wait, type Account } from './core';
 
 const WEB_APP_ID = '936619743392459';
 
 type ListName = 'followers' | 'following';
 
-class HttpError extends Error {
+export class HttpError extends Error {
   constructor(readonly status: number) {
     super(`Instagram responded with HTTP ${status}.`);
   }
+}
+
+/** Instagram refused an action (rate limit, spam check, or challenge). Continuing would make it worse. */
+export class ActionBlockedError extends Error {
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+/** True when an action error means the queue must stop instead of moving to the next account. */
+export function isBlockingError(error: unknown): boolean {
+  return error instanceof ActionBlockedError
+    || (error instanceof HttpError && [400, 401, 403, 429].includes(error.status));
+}
+
+/** Returns the signed-in Instagram user ID, if a session is present. */
+export function currentUserId(): string | undefined {
+  const id = cookie('ds_user_id');
+  return id && /^\d+$/.test(id) ? id : undefined;
 }
 
 function cookie(name: string): string | undefined {
@@ -17,8 +36,8 @@ function cookie(name: string): string | undefined {
 }
 
 function listUrl(kind: ListName, cursor: string | undefined): URL {
-  const userId = cookie('ds_user_id');
-  if (!userId || !/^\d+$/.test(userId)) {
+  const userId = currentUserId();
+  if (!userId) {
     throw new Error('The current Instagram session could not be identified.');
   }
 
@@ -67,55 +86,47 @@ async function request(url: URL | string, init: RequestInit, timeoutMs = 15_000)
   return fetch(url, { ...init, signal: AbortSignal.any(signals) });
 }
 
-/** Authenticated request boundary for the private Instagram web endpoints used by Follow Audit. */
+export interface AuditLists {
+  readonly following: readonly Account[];
+  readonly followers: readonly Account[];
+}
+
+const MAX_PAGES = 2_000;
+
+/** Authenticated request boundary for the private Instagram web endpoints used by FollowAudit. */
 export class InstagramGateway {
-  /** Loads one validated page of accounts followed by the current user. */
-  async loadFollowing(cursor: string | undefined, signal: AbortSignal): Promise<AccountPage> {
-    return this.loadList('following', cursor, signal, parseFollowingPage);
+  /**
+   * Loads both lists exactly once and derives every relationship locally.
+   *
+   * @param onProgress Called after each page with the list being loaded and its running total.
+   * @throws {Error} When loading fails, the payload is malformed, or pagination loops.
+   */
+  async audit(signal: AbortSignal, onProgress?: (kind: ListName, loaded: number) => void): Promise<AuditLists> {
+    const following = await this.collectUsers('following', signal, onProgress);
+    const followers = await this.collectUsers('followers', signal, onProgress);
+    const ids = (users: readonly Record<string, unknown>[]): Set<string> => new Set(users.map(userId));
+    return {
+      following: parseFollowingPage(withRelationships({ status: 'ok', users: following }, 'following', ids(followers))).accounts,
+      followers: parseFollowersPage(withRelationships({ status: 'ok', users: followers }, 'followers', ids(following))).accounts,
+    };
   }
 
-  /** Loads one validated page of accounts following the current user. */
-  async loadFollowers(cursor: string | undefined, signal: AbortSignal): Promise<AccountPage> {
-    return this.loadList('followers', cursor, signal, parseFollowersPage);
-  }
-
-  private readonly relatedIds = new Map<ListName, Promise<Set<string>>>();
-
-  private async loadList(
-    kind: ListName,
-    cursor: string | undefined,
-    signal: AbortSignal,
-    parse: (payload: unknown) => AccountPage,
-  ): Promise<AccountPage> {
-    const payload = await this.fetchPage(kind, cursor, signal);
-    if (usersOf(payload).every(hasRelationship)) {
-      return parse(payload);
-    }
-
-    const other = kind === 'following' ? 'followers' : 'following';
-    if (!cursor) this.relatedIds.delete(other);
-    let ids = this.relatedIds.get(other);
-    if (!ids) {
-      ids = this.collectIds(other, signal);
-      this.relatedIds.set(other, ids);
-      ids.catch(() => this.relatedIds.delete(other));
-    }
-    return parse(withRelationships(payload, kind, await ids));
-  }
-
-  private async collectIds(kind: ListName, signal: AbortSignal): Promise<Set<string>> {
-    const ids = new Set<string>();
+  private async collectUsers(kind: ListName, signal: AbortSignal, onProgress?: (kind: ListName, loaded: number) => void): Promise<Record<string, unknown>[]> {
+    const users = new Map<string, Record<string, unknown>>();
     const seen = new Set<string>();
     let cursor: string | undefined;
-    do {
+    for (let page = 0; page < MAX_PAGES; page += 1) {
+      signal.throwIfAborted();
       const payload = await this.fetchPage(kind, cursor, signal);
-      for (const user of usersOf(payload)) ids.add(userId(user));
+      for (const user of usersOf(payload)) users.set(userId(user), user);
+      onProgress?.(kind, users.size);
       const next = isObject(payload) && typeof payload.next_max_id === 'string' && payload.next_max_id ? payload.next_max_id : undefined;
-      if (next && seen.has(next)) throw new Error('Instagram returned a repeated pagination cursor.');
-      if (next) seen.add(next);
+      if (!next) return [...users.values()];
+      if (seen.has(next)) throw new Error('Instagram returned a repeated pagination cursor.');
+      seen.add(next);
       cursor = next;
-    } while (cursor);
-    return ids;
+    }
+    throw new Error('The audit exceeded its safety page limit.');
   }
 
   private async fetchPage(kind: ListName, cursor: string | undefined, signal: AbortSignal): Promise<unknown> {
@@ -182,5 +193,25 @@ export class InstagramGateway {
     if (!response.ok) {
       throw new HttpError(response.status);
     }
+    await assertActionAccepted(response);
   }
+}
+
+/** Instagram can answer HTTP 200 with a refusal body (feedback_required, spam, challenge). */
+async function assertActionAccepted(response: Response): Promise<void> {
+  // A login or checkpoint page served with HTTP 200 means the action did not happen.
+  if (response.headers.get('content-type')?.includes('text/html')) {
+    throw new ActionBlockedError('Instagram answered with a web page instead of confirming the action.');
+  }
+  let body: unknown;
+  try {
+    body = await response.json() as unknown;
+  } catch {
+    return;
+  }
+  if (!isObject(body) || body.status === undefined || body.status === 'ok') {
+    return;
+  }
+  const reason = [body.feedback_title, body.message, body.status].find(value => typeof value === 'string' && value.length > 0);
+  throw new ActionBlockedError(`Instagram refused the action: ${String(reason).slice(0, 160)}`);
 }
