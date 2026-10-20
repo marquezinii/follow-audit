@@ -17,18 +17,43 @@ export interface AccountPage {
 
 export type ListKind = 'followers' | 'following';
 
-type PageLoader = (cursor: string | undefined, signal: AbortSignal) => Promise<AccountPage>;
-
-interface ScanOptions {
-  readonly maxPages?: number;
-  readonly onProgress?: (loaded: number, total: number) => void;
-}
-
-interface RunOptions<T> {
+export interface QueueTiming {
   readonly delayMs: number;
   readonly batchSize: number;
   readonly batchDelayMs: number;
+}
+
+interface RunOptions<T> extends QueueTiming {
   readonly onResult?: (item: T, ok: boolean, completed: number, total: number, error?: unknown) => void;
+  /** Halts the queue after this many failures in a row. */
+  readonly maxConsecutiveFailures?: number;
+  /** Halts the queue immediately when an error signals that continuing is unsafe (rate limits, expired sessions). */
+  readonly isFatal?: (error: unknown) => boolean;
+}
+
+/** Raised when the action queue stops itself to protect the account. */
+export class QueueHaltedError extends Error {
+  constructor(readonly cause: unknown, readonly completed: number) {
+    super('The action queue stopped to protect the account.');
+  }
+}
+
+/** Minimal, storable identity of an account at audit time. */
+export interface SnapshotEntry {
+  readonly id: string;
+  readonly username: string;
+  readonly name: string;
+}
+
+export interface FollowerSnapshot {
+  readonly at: string;
+  readonly accounts: readonly SnapshotEntry[];
+}
+
+export interface FollowerChanges {
+  readonly since: string;
+  readonly gained: readonly SnapshotEntry[];
+  readonly lost: readonly SnapshotEntry[];
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -95,46 +120,6 @@ export function parseFollowersPage(payload: unknown): AccountPage {
   return parseAccountPage(payload, 'followers');
 }
 
-/**
- * Loads every account page up to a fixed ceiling and deduplicates accounts by ID.
- *
- * @param loadPage Request boundary supplied by the caller.
- * @param signal Cancels the current request and the remaining pagination.
- * @param options Page ceiling and optional progress callback.
- * @throws {Error} When loading fails or the page ceiling is reached.
- */
-export async function scanAccounts(
-  loadPage: PageLoader,
-  signal: AbortSignal,
-  options: ScanOptions = {},
-): Promise<readonly Account[]> {
-  const accounts = new Map<string, Account>();
-  const seenCursors = new Set<string>();
-  const maxPages = options.maxPages ?? 2_000;
-  let cursor: string | undefined;
-
-  for (let pageNumber = 0; pageNumber < maxPages; pageNumber += 1) {
-    signal.throwIfAborted();
-    if (cursor) {
-      if (seenCursors.has(cursor)) {
-        throw new Error('Instagram returned a repeated pagination cursor.');
-      }
-      seenCursors.add(cursor);
-    }
-    const page = await loadPage(cursor, signal);
-    for (const account of page.accounts) {
-      accounts.set(account.id, account);
-    }
-    options.onProgress?.(accounts.size, Math.max(page.total, accounts.size + (page.nextCursor ? 1 : 0)));
-    cursor = page.nextCursor;
-    if (!cursor) {
-      return [...accounts.values()];
-    }
-  }
-
-  throw new Error('The audit exceeded its safety page limit.');
-}
-
 /** Waits for a non-negative duration and rejects immediately when cancelled. */
 export async function wait(ms: number, signal: AbortSignal): Promise<void> {
   signal.throwIfAborted();
@@ -153,7 +138,7 @@ export async function wait(ms: number, signal: AbortSignal): Promise<void> {
 }
 
 /**
- * Executes destructive actions one at a time, isolates item failures, and honors cancellation.
+ * Executes destructive actions one at a time, isolates item failures, halts on unsafe errors, and honors cancellation.
  *
  * @param items Immutable queue snapshot.
  * @param execute Action boundary. It is called exactly once per item.
@@ -166,6 +151,7 @@ export async function runSequential<T>(
   signal: AbortSignal,
   options: RunOptions<T>,
 ): Promise<void> {
+  let failures = 0;
   for (let index = 0; index < items.length; index += 1) {
     signal.throwIfAborted();
     const item = items[index];
@@ -176,14 +162,19 @@ export async function runSequential<T>(
     let error: unknown;
     try {
       await execute(item, signal);
+      failures = 0;
     } catch (caught) {
       if (signal.aborted) {
         throw caught;
       }
       error = caught;
+      failures += 1;
     }
 
     options.onResult?.(item, error === undefined, index + 1, items.length, error);
+    if (error !== undefined && (options.isFatal?.(error) || failures >= (options.maxConsecutiveFailures ?? Infinity))) {
+      throw new QueueHaltedError(error, index + 1);
+    }
     if (index === items.length - 1) {
       continue;
     }
@@ -193,4 +184,61 @@ export async function runSequential<T>(
       : options.delayMs;
     await wait(delay, signal);
   }
+}
+
+/** Estimates the waiting time left in a queue after `completed` of `total` items. */
+export function estimateRemainingMs(completed: number, total: number, timing: QueueTiming): number {
+  let remaining = 0;
+  for (let index = Math.max(0, completed - 1); index < total - 1; index += 1) {
+    remaining += (index + 1) % Math.max(1, timing.batchSize) === 0 ? timing.batchDelayMs : timing.delayMs;
+  }
+  return remaining;
+}
+
+export function toSnapshot(accounts: readonly Account[], at: Date): FollowerSnapshot {
+  return { at: at.toISOString(), accounts: accounts.map(({ id, username, name }) => ({ id, username, name })) };
+}
+
+/** Validates a snapshot read back from untrusted local storage. */
+export function parseSnapshot(value: unknown): FollowerSnapshot | undefined {
+  if (!isObject(value) || typeof value.at !== 'string' || Number.isNaN(Date.parse(value.at)) || !Array.isArray(value.accounts)) {
+    return undefined;
+  }
+  const accounts = value.accounts.filter((entry): entry is SnapshotEntry => isObject(entry)
+    && typeof entry.id === 'string' && entry.id.length > 0 && entry.id.length <= 80
+    && typeof entry.username === 'string' && entry.username.length <= 64
+    && typeof entry.name === 'string' && entry.name.length <= 200);
+  return accounts.length === value.accounts.length ? { at: value.at, accounts } : undefined;
+}
+
+/** Compares the previous follower snapshot with a fresh audit. */
+export function diffSnapshot(previous: FollowerSnapshot, current: readonly Account[]): FollowerChanges {
+  const currentIds = new Set(current.map(account => account.id));
+  const previousIds = new Set(previous.accounts.map(entry => entry.id));
+  return {
+    since: previous.at,
+    gained: current.filter(account => !previousIds.has(account.id)).map(({ id, username, name }) => ({ id, username, name })),
+    lost: previous.accounts.filter(entry => !currentIds.has(entry.id)),
+  };
+}
+
+/** Serializes accounts as CSV, neutralizing spreadsheet formula injection. */
+export function toCsv(accounts: readonly Account[]): string {
+  const cell = (value: string | boolean): string => {
+    const raw = String(value);
+    const safe = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
+    return `"${safe.replace(/"/g, '""')}"`;
+  };
+  const rows = accounts.map(account => [account.id, account.username, account.name, account.followsYou, account.youFollow, account.isPrivate, account.isVerified].map(cell).join(','));
+  return ['id,username,name,follows_you,you_follow,private,verified', ...rows].join('\r\n');
+}
+
+const MAX_STORED_IDS = 10_000;
+
+/** Keeps only plausible account IDs from untrusted storage or an imported backup. */
+export function sanitizeIds(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value
+    .filter((id): id is string => typeof id === 'string' && id.length > 0 && id.length <= 80 && ![...id].some(character => character.charCodeAt(0) < 32))
+    .slice(0, MAX_STORED_IDS);
 }

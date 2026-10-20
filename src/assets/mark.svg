@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="14 14 100 102"><defs>
+    <linearGradient id="fa-arc" x1="20" y1="80" x2="84" y2="24" gradientUnits="userSpaceOnUse"><stop stop-color="#0A5CFF"/><stop offset="1" stop-color="#16A6F7"/></linearGradient>
+    <linearGradient id="fa-tail" x1="94" y1="32" x2="100" y2="90" gradientUnits="userSpaceOnUse"><stop stop-color="#16D6C8"/><stop offset="1" stop-color="#0EB3A4"/></linearGradient>
+    <linearGradient id="fa-badge" x1="77" y1="77.5" x2="77" y2="114.5" gradientUnits="userSpaceOnUse"><stop stop-color="#16D3C6"/><stop offset="1" stop-color="#0A9C94"/></linearGradient>
+    <mask id="fa-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="128" height="128"><rect width="128" height="128" fill="#fff"/><circle cx="77" cy="96" r="21" fill="#000"/></mask>
+    <mask id="fa-behind" maskUnits="userSpaceOnUse" x="0" y="0" width="128" height="128"><rect width="128" height="128" fill="#fff"/><circle cx="77" cy="96" r="21" fill="#000"/><path d="M24 92.5C27 79 39 69 55 69C66 69 75 75 79 84V108H59C44 107.5 31 101 24 92.5Z" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round"/></mask>
+  </defs>
+  <g fill="none" stroke-linecap="round" stroke-width="9.5"><path d="M22.15 78.6A44 44 0 0 1 82.6 25.1" stroke="url(#fa-arc)"/><path d="M93.4 32.3A44 44 0 0 1 101.1 88.7" stroke="url(#fa-tail)"/></g>
+  <g mask="url(#fa-behind)" fill="#C3CCDD"><circle cx="81.5" cy="58.5" r="8"/><path d="M70 73C73.5 69.8 78 68 83 68C91 68 97 74 98.5 84L82 92Z"/></g>
+  <g mask="url(#fa-cut)" fill="#172235"><circle cx="54" cy="54.5" r="12.5"/><path d="M24 92.5C27 79 39 69 55 69C66 69 75 75 79 84V108H59C44 107.5 31 101 24 92.5Z"/></g>
+  <circle cx="77" cy="96" r="18.5" fill="url(#fa-badge)"/>
+  <path d="M68.6 96.4 74.4 102.2 85.6 90.8" fill="none" stroke="#fff" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/></svg>

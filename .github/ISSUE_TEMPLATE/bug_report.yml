@@ -1,0 +1,42 @@
+name: Bug report
+description: Something in FollowAudit does not work as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! **Never paste cookies, CSRF tokens, real usernames, or full Instagram/TikTok responses.**
+        Security issues belong in a [private advisory](https://github.com/marquezinii/follow-audit/security/advisories/new).
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options: [Instagram, TikTok export, Live preview, Website]
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Chrome 141 on Windows 11
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: 1. Open… 2. Click… 3. See…
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: Console messages
+      description: Lines starting with [FollowAudit]. Remove any personal data first.
+      render: text

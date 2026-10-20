@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest an improvement for FollowAudit.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Project principles
+      options:
+        - label: The idea keeps all data in the browser and adds no server, tracking, or runtime dependency.
+          required: true

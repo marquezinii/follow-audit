@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "title": "Design System: FollowAudit",
+  "extensions": {
+    "colorMeta": {
+      "blue-solid": { "role": "primary", "displayName": "Signal Blue", "canonical": "oklch(54.6% 0.251 262.4)", "tonalRamp": ["#00062a", "#011c5d", "#00329a", "#034bda", "#3275ff", "#74a3fd", "#b0cbfd", "#e7effd"] },
+      "blue-text": { "role": "primary", "displayName": "Verdict Blue", "canonical": "oklch(50.5% 0.232 262.6)", "tonalRamp": ["#00062b", "#001a60", "#01319b", "#0049dd", "#3575fc", "#74a3fd", "#b0cbfe", "#e7effe"] },
+      "cyan": { "role": "secondary", "displayName": "Axis Cyan", "canonical": "oklch(68.1% 0.153 239.4)", "tonalRamp": ["#000d17", "#01273d", "#024466", "#036493", "#0e89c6", "#28aff9", "#95d3fe", "#e1f1fd"] },
+      "teal-bright": { "role": "secondary", "displayName": "Bright Teal", "canonical": "oklch(74.6% 0.131 182.8)", "tonalRamp": ["#000f0c", "#002b26", "#004b43", "#116c62", "#079486", "#13beac", "#4be6d2", "#b9fff3"] },
+      "teal-text": { "role": "secondary", "displayName": "Safe Teal", "canonical": "oklch(53.1% 0.092 184.0)", "tonalRamp": ["#000f0c", "#052b26", "#094a43", "#0c6c63", "#2e9286", "#59b8ab", "#81ded1", "#b8fff4"] },
+      "danger-solid": { "role": "tertiary", "displayName": "Loss Red", "canonical": "oklch(59.0% 0.195 24.0)", "tonalRamp": ["#1f0001", "#4b0007", "#7b0514", "#b00820", "#dd3e42", "#fd736f", "#feb5af", "#fceae8"] },
+      "ink": { "role": "neutral", "displayName": "Navy Ink", "canonical": "oklch(25.2% 0.040 260.9)", "tonalRamp": ["#030b1c", "#192437", "#344055", "#515e74", "#738198", "#97a5be", "#bccbe5", "#e7effc"] },
+      "panel-ground": { "role": "neutral", "displayName": "Panel Ground", "canonical": "oklch(97.9% 0.004 271.4)", "tonalRamp": ["#0a0b0d", "#232426", "#3f4042", "#5d5d60", "#7f8083", "#a3a4a7", "#c9cacd", "#edeef1"] },
+      "site-paper": { "role": "neutral", "displayName": "Site Paper", "canonical": "oklch(97.0% 0.006 264.5)", "tonalRamp": ["#0a0b0e", "#232427", "#3e4043", "#5c5e61", "#7e8084", "#a3a5a8", "#c9cace", "#eceef2"] },
+      "band": { "role": "neutral", "displayName": "Night Band", "canonical": "oklch(21.8% 0.036 262.5)", "tonalRamp": ["#040b1a", "#1a2436", "#354053", "#535e73", "#758196", "#99a5bc", "#becbe3", "#e7effd"] }
+    },
+    "typographyMeta": {
+      "display-contender": { "displayName": "Contender", "purpose": "Site FOLLOWING / FOLLOWERS, uppercase, fitted by site.js so both halves share one size (16-168px)." },
+      "display-numeral": { "displayName": "Count", "purpose": "Panel's two counts on the versus axis; steps 68/52/40px by digit count." },
+      "headline": { "displayName": "Statement", "purpose": "Site section statements; the closer is the uppercase variant up to 64px." },
+      "title-site": { "displayName": "Offer", "purpose": "Site h1 offer line, max 24ch, balanced." },
+      "title-panel": { "displayName": "View title", "purpose": "Panel list and settings titles (22px); dialogs 20px." },
+      "body-site": { "displayName": "Site body", "purpose": "16px/1.6 copy; lead 18px at 60ch." },
+      "body-panel": { "displayName": "Panel body", "purpose": "14px/1.5 copy inside the Shadow DOM." },
+      "label-caps": { "displayName": "Caps label", "purpose": "Count captions, settings group titles, nav, box and guarantee titles; 11-14px, +0.08em (venue +0.2em)." }
+    },
+    "shadows": [
+      { "name": "panel-edge", "value": "-1px 0 0 #e2e6ee, -28px 0 60px -36px rgba(23,34,53,.45)", "purpose": "Separates the docked side panel from the host page." },
+      { "name": "float", "value": "0 24px 60px -24px rgba(23,34,53,.45), 0 2px 6px rgba(23,34,53,.08)", "purpose": "Panel popover, dialog, minimized pill." },
+      { "name": "primary-lift", "value": "0 8px 20px -12px rgba(10,92,255,.8), inset 0 1px 0 rgba(255,255,255,.14)", "purpose": "Panel primary button only." },
+      { "name": "focus-ring", "value": "0 0 0 3px rgba(10,92,255,.35)", "purpose": "Universal focus indicator (site uses .4 alpha; dark themes rgba(97,152,255,.5) / rgba(122,168,255,.55))." },
+      { "name": "site-popover", "value": "0 24px 50px -24px rgba(10,16,28,.5)", "purpose": "Site language menu; the only shadow on the site." }
+    ],
+    "motion": [
+      { "name": "ease-out-soft", "value": "cubic-bezier(.2,.8,.2,1)", "purpose": "View enter (.22s), dialog open (.2s), site match rise (.45s) and mutual connector draw (.5s)." },
+      { "name": "state-fast", "value": "150ms", "purpose": "Hover color/background/border transitions; 120ms on account rows and checkboxes." },
+      { "name": "match-stagger", "value": "60ms", "purpose": "Site sample matches rise one after another, 0-300ms." },
+      { "name": "progress-sweep", "value": "1.15s cubic-bezier(.45,0,.2,1) infinite", "purpose": "Indeterminate gradient progress bar." },
+      { "name": "status-pulse", "value": "1.3s ease-in-out infinite", "purpose": "Blue status dot while scanning or running." },
+      { "name": "reduced-motion", "value": "animation:none!important; transition:none!important", "purpose": "Applied to every element under prefers-reduced-motion: reduce on both surfaces; site also disables smooth scroll." }
+    ],
+    "breakpoints": [
+      { "name": "panel-narrow", "value": "480px" },
+      { "name": "site-narrow", "value": "560px" },
+      { "name": "site-medium", "value": "820px" },
+      { "name": "site-wide", "value": "1080px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button (panel)",
+      "kind": "button",
+      "refersTo": "button-primary-panel",
+      "description": "The one primary action in the panel: run or refresh the audit, run the confirmed queue.",
+      "html": "<button class=\"ds-btn-primary\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16M8 12h8\"/></svg><span>Refresh audit</span></button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border:1px solid transparent;border-radius:12px;color:#fff;background:#0a5cff;box-shadow:0 8px 20px -12px rgba(10,92,255,.8),inset 0 1px 0 rgba(255,255,255,.14);font:750 14px/1.5 Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s,transform .15s}.ds-btn-primary svg{width:18px;height:18px}.ds-btn-primary:hover{background:#0047d6}.ds-btn-primary:active{transform:translateY(1px)}.ds-btn-primary:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(10,92,255,.35)}"
+    },
+    {
+      "name": "Danger Button (panel)",
+      "kind": "button",
+      "refersTo": "button-danger-panel",
+      "description": "Destructive confirm action inside the confirm dialog only.",
+      "html": "<button class=\"ds-btn-danger\">Unfollow 3 accounts</button>",
+      "css": ".ds-btn-danger{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border:1px solid transparent;border-radius:12px;color:#fff;background:#d93a3f;font:750 14px/1.5 Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s}.ds-btn-danger:hover{background:#bf2d32}.ds-btn-danger:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(10,92,255,.35)}"
+    },
+    {
+      "name": "Primary + Outline Buttons (site)",
+      "kind": "button",
+      "refersTo": "button-primary-site",
+      "description": "Copy script is always primary; the outline button is its paired secondary.",
+      "html": "<div class=\"ds-site-actions\"><button class=\"ds-site-primary\">Copy script</button><a class=\"ds-site-outline\" href=\"#\">Try the live preview</a></div>",
+      "css": ".ds-site-actions{display:flex;flex-wrap:wrap;gap:10px}.ds-site-primary,.ds-site-outline{display:inline-flex;align-items:center;min-height:52px;padding:0 24px;border:1.5px solid transparent;border-radius:10px;font:800 16px/1 Manrope,ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em;text-decoration:none;cursor:pointer;transition:background .15s}.ds-site-primary{color:#fff;background:#0a5cff}.ds-site-primary:hover{background:#0047d6}.ds-site-outline{color:#172235;border-color:#172235;background:transparent}.ds-site-outline:hover{background:rgba(10,92,255,.08)}.ds-site-primary:focus-visible,.ds-site-outline:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(10,92,255,.4)}"
+    },
+    {
+      "name": "Search Field (panel)",
+      "kind": "input",
+      "refersTo": "input-search-panel",
+      "description": "List search with a slash keycap hint that hides on focus or input.",
+      "html": "<label class=\"ds-search\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-4-4\"/></svg><input type=\"search\" placeholder=\"Search\"><kbd>/</kbd></label>",
+      "css": ".ds-search{position:relative;display:flex;align-items:center;width:280px}.ds-search svg{position:absolute;left:12px;width:18px;height:18px;color:#5f6b7e;pointer-events:none}.ds-search input{width:100%;height:40px;padding:0 36px 0 38px;border:1px solid #e2e6ee;border-radius:11px;background:#fff;color:#172235;caret-color:#0a5cff;font:14px Manrope,ui-sans-serif,system-ui,sans-serif;outline:none;transition:border-color .15s}.ds-search input:hover{border-color:#c9d1dd}.ds-search input:focus{border-color:#0a5cff}.ds-search kbd{position:absolute;right:9px;display:grid;place-items:center;min-width:20px;height:20px;border:1px solid #e2e6ee;border-radius:6px;color:#5f6b7e;font:700 11px/1 Manrope,sans-serif}.ds-search input:focus+kbd{display:none}"
+    },
+    {
+      "name": "Versus Axis (panel report)",
+      "kind": "custom",
+      "refersTo": "display-numeral",
+      "description": "Signature: two counts facing each other across the 2px brand-gradient axis, mark on a ground disc at the centre.",
+      "html": "<div class=\"ds-versus\"><p class=\"ds-side ds-left\"><strong>1,284</strong><span>Following</span></p><span class=\"ds-axis\"><span class=\"ds-axis-mark\"></span></span><p class=\"ds-side\"><strong>1,190</strong><span>Followers</span></p></div>",
+      "css": ".ds-versus{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;padding:6px 0 4px;background:#f7f8fb;color:#172235;font-family:Manrope,ui-sans-serif,system-ui,sans-serif;font-variant-numeric:tabular-nums}.ds-side{display:grid;gap:2px;margin:0;min-width:0}.ds-left{text-align:right}.ds-side strong{font-size:52px;font-weight:800;line-height:.95;letter-spacing:-.04em;white-space:nowrap}.ds-side span{color:#566276;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.ds-axis{position:relative;display:grid;place-items:center;width:48px;height:120px}.ds-axis::before{content:\"\";position:absolute;inset:0 auto 0 50%;width:2px;margin-left:-1px;border-radius:2px;background:linear-gradient(180deg,#0a5cff,#0aa3ec 55%,#12c7b4)}.ds-axis-mark{position:relative;width:44px;height:44px;border-radius:50%;background:#f7f8fb;box-shadow:0 0 0 4px #f7f8fb,inset 0 0 0 4px #0a5cff}"
+    },
+    {
+      "name": "Ranked Segments (panel)",
+      "kind": "custom",
+      "refersTo": "segment-major",
+      "description": "Undercard list: 1.5px ink top rule, hairline rows, major rows before minor rows, verdict count in blue, loss in red.",
+      "html": "<nav class=\"ds-segments\"><button class=\"ds-seg ds-major\"><span><strong>Don't follow you back</strong><small>You follow them; they don't follow you</small></span><b class=\"ds-verdict\">3</b></button><button class=\"ds-seg ds-major\"><span><strong>Unfollowed you</strong><small>Since Oct 13</small></span><b class=\"ds-loss\">2</b></button><button class=\"ds-seg ds-minor\"><span><strong>Protected</strong></span><b>0</b></button></nav>",
+      "css": ".ds-segments{display:grid;width:360px;border-top:1.5px solid #172235;font-family:Manrope,ui-sans-serif,system-ui,sans-serif;font-variant-numeric:tabular-nums}.ds-seg{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:0 2px;border:0;border-bottom:1px solid #e2e6ee;background:transparent;color:#172235;text-align:left;cursor:pointer;transition:background .15s}.ds-seg:hover{background:#eef1f6}.ds-seg:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(10,92,255,.35)}.ds-seg span{display:grid;gap:1px}.ds-major{min-height:66px}.ds-minor{min-height:48px}.ds-major strong{font-size:15px;font-weight:750}.ds-minor strong{font-size:13.5px;font-weight:650}.ds-seg small{color:#566276;font-size:12.5px}.ds-major b{font-size:24px;font-weight:800;letter-spacing:-.035em}.ds-minor b{font-size:15px;font-weight:750;color:#566276}.ds-verdict{color:#0a52e6}.ds-loss{color:#c8323a}"
+    },
+    {
+      "name": "Undercard Box Title (site)",
+      "kind": "custom",
+      "refersTo": "label-caps",
+      "description": "Ruled box with a caps title between two blue diamonds; boxes share 1.5px ink borders.",
+      "html": "<article class=\"ds-box\"><h2 class=\"ds-box-title\">The undercard</h2><p>One audit loads both lists once and matches every account.</p></article>",
+      "css": ".ds-box{display:flex;flex-direction:column;gap:16px;width:320px;padding:26px;border:1.5px solid #172235;background:#f3f5f9;color:#172235;font-family:Manrope,ui-sans-serif,system-ui,sans-serif}.ds-box-title{display:flex;align-items:center;gap:12px;margin:0;font-size:17px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.ds-box-title::before,.ds-box-title::after{content:\"\";width:8px;height:8px;flex:0 0 auto;background:#0a5cff;transform:rotate(45deg)}.ds-box p{margin:0;color:#4f5b6e;font-size:15px;line-height:1.6}"
+    },
+    {
+      "name": "Language Menu (navigation)",
+      "kind": "nav",
+      "refersTo": "pill-minimized",
+      "description": "Details popover listing five locales; the active one in blue on a blue wash with a check.",
+      "html": "<div class=\"ds-pop\"><p>Language</p><button aria-checked=\"true\"><span>EN</span><strong>English</strong></button><button><span>PT</span><strong>Português</strong></button><button><span>DE</span><strong>Deutsch</strong></button></div>",
+      "css": ".ds-pop{width:208px;padding:6px;border:1px solid #e2e6ee;border-radius:14px;background:#fff;box-shadow:0 24px 60px -24px rgba(23,34,53,.45),0 2px 6px rgba(23,34,53,.08);font-family:Manrope,ui-sans-serif,system-ui,sans-serif;color:#172235}.ds-pop p{margin:6px 10px;color:#5f6b7e;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.ds-pop button{display:grid;grid-template-columns:30px 1fr;align-items:center;width:100%;min-height:40px;padding:0 10px;border:0;border-radius:9px;background:transparent;color:inherit;text-align:left;cursor:pointer}.ds-pop button:hover{background:#eef1f6}.ds-pop button:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(10,92,255,.35)}.ds-pop button span{color:#5f6b7e;font-size:11px;font-weight:800}.ds-pop button strong{font-weight:600}.ds-pop button[aria-checked=true]{color:#0a52e6;background:rgba(10,92,255,.08)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Fight Card",
+    "overview": "FollowAudit is a versus sheet. Following and Followers face each other across one vertical axis, and every surface is organised around that collision: the side panel opens as a report with the two counts on either side of the axis and the mark at its centre, and the site sets FOLLOWING | mark | FOLLOWERS at collision scale, with sample accounts matched across the same spine underneath. Everything else is a ranked bill. Panel segments shrink in rank like an undercard. The site's boxes, venue band and \"Questions before the bell\" FAQ use fight-poster grammar. Both surfaces reject the SaaS hero with an icon-card feature grid and the full-screen admin dashboard.\n\nThe material is cool paper with heavy navy ink. Type is a single family (Manrope) carried from hairline labels up to 152px ExtraBold caps. Colour is held back. The blue→teal brand gradient appears only as the axis line and the progress bar. Brand blue marks the verdict and the action. Teal means safe, protected or done, and red means loss or a destructive change. Structure comes from rules, not containers: hairlines between rows and heavy ink rules framing the bout. There are two modes. The panel (Operate) is dense, quiet and explicit about change. The site (Persuade) is loud in scale and restrained in colour.",
+    "keyCharacteristics": [
+      "One versus axis per surface, always carrying the brand mark at its centre.",
+      "Brand gradient = axis and progress only; brand blue = verdict + primary action.",
+      "Manrope (Latin-subset WOFF2, weights 200–800) is the only webfont; tabular numerals everywhere.",
+      "Hairline + heavy-ink rule system; the site frames the bout with 4px double rules.",
+      "Light and dark themes are first-class on both surfaces, toggled and persisted, defaulting to `prefers-color-scheme`.",
+      "Reduced motion turns off all animation and transitions; forced-colors keeps the axis visible."
+    ],
+    "rules": [
+      { "name": "The Axis-Only Gradient Rule", "body": "The blue→cyan→teal gradient exists in exactly two places: the 2px versus axis (and the site's match spine that continues it) and the 2px progress bar under the panel header. Never use it as a fill, a button, a background or on text.", "section": "colors" },
+      { "name": "The Verdict Blue Rule", "body": "Blue answers \"who doesn't follow back\" and marks \"do this\". If an element is neither a verdict, an action, a link or a selection, it isn't blue. The only built exception is the small diamond ornament (9px rotated square in the venue band, 8px on box titles) and the italic \"vs\" in the undercard.", "section": "colors" },
+      { "name": "The Three Voices Rule", "body": "Blue is the verdict, teal is safety, red is loss. Never swap them. A protected account is teal, never blue. A lost follower is red, never blue.", "section": "colors" },
+      { "name": "The One Family Rule", "body": "Manrope is the only typeface shipped (Latin-subset WOFF2, `font-display: swap`). Hierarchy comes from weight, size and tracking. Never add a second display face.", "section": "typography" },
+      { "name": "The Collision Scale Rule", "body": "The two sides of the axis are always set at the same size. On the site the longer label sets the scale for both. In the panel the larger count sets the digit step for both.", "section": "typography" },
+      { "name": "The Axis-Is-The-Spine Rule", "body": "Each surface has one vertical axis and it is the spine of the layout: the column widths on either side mirror each other, and content aligns toward it (left side right-aligned, right side left-aligned).", "section": "layout" },
+      { "name": "The Rules-Not-Cards Rule", "body": "On the site, grouping is done with 1.5px ink borders that boxes share, plus hairline row dividers. There are no floating cards, no drop shadows on content and no rounded feature tiles. The one rounded, hairline-framed element is the product screenshot frame.", "section": "elevation" },
+      { "name": "The Heavy Rule Rule", "body": "1.5px ink and 4px double ink are reserved for framing the contest and its sections. Row-level separation is always a 1px hairline.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do put the brand mark on the versus axis, centred on a disc of the ground colour, on every new report-like surface.",
+      "Do keep the gradient `linear-gradient(180deg, #0a5cff, #0aa3ec 55%, #12c7b4)` to 2px lines: axis, match spine, progress.",
+      "Do set the two sides of any versus at one shared size, and step it down by digit count or by the fit of the longer label.",
+      "Do shrink type and row height with rank (major 66px / minor 48px in the panel; 24 → 15px matches on the site).",
+      "Do separate rows with 1px hairlines and frame sections with 1.5px ink. Reserve 4px double ink for the bout.",
+      "Do write wordmark text as \"Follow\" in ink plus \"Audit\" in the brand gradient, using the supplied SVG only and never rebuilt in CSS. Do not use the horizontal logo below 120px wide.",
+      "Do define every new colour for both themes, and check 4.5:1 text contrast on the actual ground (`panel-ground` / `site-paper`), not only on `raised`.",
+      "Do wrap any new motion in the existing `prefers-reduced-motion: reduce` kill-switch and keep `forced-colors` fallbacks for the axis and the diamonds."
+    ],
+    "donts": [
+      "Don't use gradient text, gradient buttons or gradient backgrounds.",
+      "Don't build site sections from floating rounded cards or icon-card feature grids. Use ruled boxes.",
+      "Don't use Signal Blue for decoration, status chips or headings. It is for the verdict and the action.",
+      "Don't colour protected or success states blue, or losses anything but red.",
+      "Don't add a second typeface or load Manrope from a CDN. Ship the Latin-subset WOFF2.",
+      "Don't add drop shadows to content. Shadows are only for the docked panel edge, floating layers and the panel's primary button.",
+      "Don't recolour, stretch, rotate or add effects to the logo or mark."
+    ]
+  }
+}

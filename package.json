@@ -1,8 +1,16 @@
 {
   "name": "follow-audit",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "private": true,
-  "description": "A local-first workspace for reviewing your Instagram and TikTok followers and following.",
+  "description": "A private, local-first workspace for reviewing Instagram and TikTok followers and following.",
+  "keywords": [
+    "instagram",
+    "tiktok",
+    "followers",
+    "unfollowers",
+    "privacy",
+    "browser-script"
+  ],
   "license": "MIT",
   "author": "marquezinii",
   "homepage": "https://marquezinii.github.io/follow-audit/",
@@ -13,9 +21,12 @@
   "bugs": {
     "url": "https://github.com/marquezinii/follow-audit/issues"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "npm run build && node scripts/serve.cjs",
-    "bundle": "esbuild src/main.ts --bundle --minify --sourcemap --loader:.png=dataurl --loader:.ttf=dataurl --outfile=dist/dist.js",
+    "bundle": "esbuild src/main.ts --bundle --minify --sourcemap=external --loader:.svg=text --loader:.woff2=dataurl --target=chrome116,firefox124,safari17.4 --legal-comments=none --outfile=dist/dist.js",
     "prepare-pages": "node scripts/prepare-pages.cjs",
     "build": "npm run bundle && npm run prepare-pages",
     "typecheck": "tsc --noEmit",
@@ -26,11 +37,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^26.4.1",
+    "@types/node": "^26.6.5",
     "esbuild": "^0.28.2",
-    "eslint": "^10.10.0",
-    "tsx": "^4.23.13",
+    "eslint": "^10.13.0",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.69.0"
+    "typescript-eslint": "^8.72.0"
   }
 }
