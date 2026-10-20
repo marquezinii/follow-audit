@@ -1,7 +1,7 @@
 const translations = {
   en: {
-    _page_title: "FollowAudit — See who doesn't follow you back, privately",
-    _meta: "Free, open-source tool to see who doesn't follow you back and who unfollowed you on Instagram and TikTok. Runs entirely in your browser.",
+    _page_title: "FollowAudit — See who doesn't follow you back on Instagram",
+    _meta: "Free, open-source tool to see who doesn't follow you back and who unfollowed you on Instagram and TikTok. No password, runs entirely in your browser.",
     skip: 'Skip to content',
     primary_nav: 'Primary navigation',
     nav_features: 'Features',
@@ -19,7 +19,7 @@ const translations = {
     tag_not_back: "doesn't follow back",
     tag_you_not_back: "you don't follow back",
     sample_caption: 'Sample accounts. Your real lists never leave your browser.',
-    hero_title: "See who doesn't follow you back — and who unfollowed you.",
+    hero_title: "See who doesn't follow you back on Instagram — and who unfollowed you.",
     hero_body: 'FollowAudit compares both sides of your Instagram or TikTok in one audit, keeps the people who matter protected, and changes nothing until you confirm. It runs entirely in your browser.',
     live_preview: 'Try the live preview',
     venue_browser: 'Desktop browser',
@@ -62,10 +62,19 @@ const translations = {
     a5: 'Not yet. Mobile browsers do not offer a developer console, so you need a desktop browser.',
     q6: 'Is it free?',
     a6: 'Yes. FollowAudit is free and open source under the MIT license.',
+    q7: 'What is FollowAudit?',
+    a7: "FollowAudit is a free, open-source tool that shows who doesn't follow you back and who unfollowed you on Instagram, and compares your TikTok data export. It runs as a script in your own browser tab, so there is no app to install, no password to share and no server that sees your lists.",
+    q8: "How do I see who doesn't follow me back on Instagram?",
+    a8: "Copy the FollowAudit script, open instagram.com on a computer while logged in, open the browser console, paste the script and press Enter. One audit loads who you follow and who follows you, then lists every account that doesn't follow you back. Nothing changes on your account until you confirm.",
+    q9: 'Does it work on TikTok?',
+    a9: 'Yes, read-only. You import the Follower.json and Following.json files from your official TikTok data export; FollowAudit compares them locally and guides you through reviewing each profile yourself. It never performs TikTok actions for you.',
+    q10: 'Can I get banned for using it?',
+    a10: "No tool can promise that, and Instagram's terms restrict automated access, so use FollowAudit at your own risk. It is built to be gentle: lists are read page by page, unfollows run one at a time with pauses, are never retried, and stop as soon as Instagram pushes back.",
     cta_title: 'Both sides of your follows, in one audit.',
     view_source: 'View source on GitHub',
     footer_note: 'Built for deliberate decisions. Your data stays yours.',
     footer_nav: 'Footer navigation',
+    guide_link: "Guide: how to see who doesn't follow you back",
     changelog: 'Changelog',
     security: 'Security',
     license: 'MIT License',
@@ -75,8 +84,8 @@ const translations = {
     copy_error: 'Automatic copy failed. Download dist.js from GitHub instead.',
   },
   'pt-BR': {
-    _page_title: 'FollowAudit — Veja quem não segue você de volta, com privacidade',
-    _meta: 'Ferramenta gratuita e open source para ver quem não segue você de volta e quem deixou de seguir no Instagram e no TikTok. Roda inteiramente no seu navegador.',
+    _page_title: 'FollowAudit — Veja quem não te segue de volta no Instagram',
+    _meta: 'Ferramenta gratuita e open source para ver quem não te segue de volta e quem deixou de te seguir no Instagram e TikTok. Sem senha, direto no seu navegador.',
     skip: 'Pular para o conteúdo',
     primary_nav: 'Navegação principal',
     nav_features: 'Recursos',
@@ -94,7 +103,7 @@ const translations = {
     tag_not_back: 'não segue de volta',
     tag_you_not_back: 'você não segue de volta',
     sample_caption: 'Contas de exemplo. Suas listas reais nunca saem do seu navegador.',
-    hero_title: 'Veja quem não segue você de volta — e quem deixou de seguir.',
+    hero_title: 'Veja quem não te segue de volta no Instagram — e quem deixou de te seguir.',
     hero_body: 'O FollowAudit compara os dois lados do seu Instagram ou TikTok em uma auditoria, mantém protegidas as pessoas que importam e não muda nada até você confirmar. Tudo roda no seu navegador.',
     live_preview: 'Ver demonstração',
     venue_browser: 'Navegador no computador',
@@ -137,10 +146,19 @@ const translations = {
     a5: 'Ainda não. Navegadores de celular não oferecem console de desenvolvedor, então você precisa de um navegador de computador.',
     q6: 'É gratuito?',
     a6: 'Sim. O FollowAudit é gratuito e open source sob a licença MIT.',
+    q7: 'O que é o FollowAudit?',
+    a7: 'O FollowAudit é uma ferramenta gratuita e open source que mostra quem não te segue de volta e quem deixou de te seguir no Instagram, e compara a exportação de dados do TikTok. Ele roda como um script na aba do seu próprio navegador: sem app para instalar, sem senha para compartilhar e sem servidor que veja suas listas.',
+    q8: 'Como ver quem não me segue de volta no Instagram?',
+    a8: 'Copie o script do FollowAudit, abra o instagram.com no computador com a sua conta logada, abra o console do navegador, cole o script e aperte Enter. Uma auditoria carrega quem você segue e quem segue você e lista todas as contas que não te seguem de volta. Nada muda na sua conta até você confirmar.',
+    q9: 'Funciona no TikTok?',
+    a9: 'Sim, somente leitura. Você importa os arquivos Follower.json e Following.json da exportação oficial de dados do TikTok; o FollowAudit compara tudo localmente e guia a revisão de cada perfil por você mesmo. Ele nunca executa ações no TikTok por você.',
+    q10: 'Posso ser banido por usar?',
+    a10: 'Nenhuma ferramenta pode prometer isso, e os termos do Instagram restringem o acesso automatizado, então use por sua conta e risco. O FollowAudit foi feito para ser cuidadoso: lê as listas página por página, deixa de seguir uma conta por vez com pausas, nunca tenta de novo e para assim que o Instagram reage.',
     cta_title: 'Os dois lados dos seus follows, em uma auditoria.',
     view_source: 'Ver código no GitHub',
     footer_note: 'Feito para decisões conscientes. Seus dados continuam seus.',
     footer_nav: 'Navegação do rodapé',
+    guide_link: 'Guia: como ver quem não te segue de volta',
     changelog: 'Novidades',
     security: 'Segurança',
     license: 'Licença MIT',
@@ -150,8 +168,8 @@ const translations = {
     copy_error: 'A cópia automática falhou. Baixe o dist.js no GitHub.',
   },
   es: {
-    _page_title: 'FollowAudit — Descubre quién no te sigue de vuelta, con privacidad',
-    _meta: 'Herramienta gratuita y de código abierto para ver quién no te sigue de vuelta y quién dejó de seguirte en Instagram y TikTok. Funciona por completo en tu navegador.',
+    _page_title: 'FollowAudit — Descubre quién no te sigue de vuelta en Instagram',
+    _meta: 'Herramienta gratuita y de código abierto para ver quién no te sigue de vuelta y quién dejó de seguirte en Instagram y TikTok. Sin contraseña, funciona en tu navegador.',
     skip: 'Saltar al contenido',
     primary_nav: 'Navegación principal',
     nav_features: 'Funciones',
@@ -169,7 +187,7 @@ const translations = {
     tag_not_back: 'no te sigue',
     tag_you_not_back: 'no lo sigues',
     sample_caption: 'Cuentas de ejemplo. Tus listas reales nunca salen de tu navegador.',
-    hero_title: 'Descubre quién no te sigue de vuelta — y quién dejó de seguirte.',
+    hero_title: 'Descubre quién no te sigue de vuelta en Instagram — y quién dejó de seguirte.',
     hero_body: 'FollowAudit compara ambos lados de tu Instagram o TikTok en una auditoría, mantiene protegidas a las personas que importan y no cambia nada hasta que confirmes. Funciona por completo en tu navegador.',
     live_preview: 'Probar la demo',
     venue_browser: 'Navegador de escritorio',
@@ -212,10 +230,19 @@ const translations = {
     a5: 'Todavía no. Los navegadores móviles no ofrecen consola de desarrollador, así que necesitas un navegador de escritorio.',
     q6: '¿Es gratis?',
     a6: 'Sí. FollowAudit es gratuito y de código abierto bajo la licencia MIT.',
+    q7: '¿Qué es FollowAudit?',
+    a7: 'FollowAudit es una herramienta gratuita y de código abierto que muestra quién no te sigue de vuelta y quién dejó de seguirte en Instagram, y compara la exportación de datos de TikTok. Funciona como un script en la pestaña de tu propio navegador: sin app que instalar, sin contraseña que compartir y sin ningún servidor que vea tus listas.',
+    q8: '¿Cómo ver quién no me sigue de vuelta en Instagram?',
+    a8: 'Copia el script de FollowAudit, abre instagram.com en un ordenador con tu sesión iniciada, abre la consola del navegador, pega el script y pulsa Enter. Una auditoría carga a quién sigues y quién te sigue, y lista todas las cuentas que no te siguen de vuelta. Nada cambia en tu cuenta hasta que lo confirmes.',
+    q9: '¿Funciona en TikTok?',
+    a9: 'Sí, solo lectura. Importas los archivos Follower.json y Following.json de tu exportación oficial de datos de TikTok; FollowAudit los compara localmente y te guía para revisar cada perfil tú mismo. Nunca realiza acciones en TikTok por ti.',
+    q10: '¿Pueden bloquearme por usarlo?',
+    a10: 'Ninguna herramienta puede prometerlo, y las condiciones de Instagram restringen el acceso automatizado, así que úsalo bajo tu propia responsabilidad. FollowAudit está pensado para ser prudente: lee las listas página a página, deja de seguir cuentas de una en una con pausas, nunca reintenta y se detiene en cuanto Instagram reacciona.',
     cta_title: 'Ambos lados de tus follows, en una auditoría.',
     view_source: 'Ver el código en GitHub',
     footer_note: 'Hecho para decisiones deliberadas. Tus datos siguen siendo tuyos.',
     footer_nav: 'Navegación del pie de página',
+    guide_link: 'Guía en inglés: cómo ver quién no te sigue de vuelta',
     changelog: 'Novedades',
     security: 'Seguridad',
     license: 'Licencia MIT',
@@ -225,8 +252,8 @@ const translations = {
     copy_error: 'La copia automática falló. Descarga dist.js desde GitHub.',
   },
   fr: {
-    _page_title: 'FollowAudit — Voyez qui ne vous suit pas en retour, en toute confidentialité',
-    _meta: 'Outil gratuit et open source pour voir qui ne vous suit pas en retour et qui a cessé de vous suivre sur Instagram et TikTok. Fonctionne entièrement dans votre navigateur.',
+    _page_title: 'FollowAudit — Voyez qui ne vous suit pas en retour sur Instagram',
+    _meta: 'Outil gratuit et open source pour voir qui ne vous suit pas en retour et qui a cessé de vous suivre sur Instagram et TikTok. Sans mot de passe, dans votre navigateur.',
     skip: 'Aller au contenu',
     primary_nav: 'Navigation principale',
     nav_features: 'Fonctionnalités',
@@ -244,7 +271,7 @@ const translations = {
     tag_not_back: 'ne vous suit pas',
     tag_you_not_back: 'vous ne suivez pas',
     sample_caption: 'Comptes fictifs. Vos vraies listes ne quittent jamais votre navigateur.',
-    hero_title: 'Voyez qui ne vous suit pas en retour — et qui a cessé de vous suivre.',
+    hero_title: 'Voyez qui ne vous suit pas en retour sur Instagram — et qui a cessé de vous suivre.',
     hero_body: 'FollowAudit compare les deux côtés de votre Instagram ou TikTok en un seul audit, protège les personnes qui comptent et ne change rien sans votre confirmation. Tout se passe dans votre navigateur.',
     live_preview: 'Essayer la démo',
     venue_browser: 'Navigateur sur ordinateur',
@@ -287,10 +314,19 @@ const translations = {
     a5: 'Pas encore. Les navigateurs mobiles n’offrent pas de console de développement ; il vous faut un navigateur sur ordinateur.',
     q6: 'Est-ce gratuit ?',
     a6: 'Oui. FollowAudit est gratuit et open source sous licence MIT.',
+    q7: "Qu'est-ce que FollowAudit ?",
+    a7: "FollowAudit est un outil gratuit et open source qui montre qui ne vous suit pas en retour et qui a cessé de vous suivre sur Instagram, et compare l'export de données TikTok. Il s'exécute comme un script dans l'onglet de votre propre navigateur : aucune appli à installer, aucun mot de passe à partager et aucun serveur qui voit vos listes.",
+    q8: 'Comment voir qui ne me suit pas en retour sur Instagram ?',
+    a8: 'Copiez le script FollowAudit, ouvrez instagram.com sur un ordinateur, connecté à votre compte, ouvrez la console du navigateur, collez le script et appuyez sur Entrée. Un audit charge vos abonnements et vos abonnés, puis liste chaque compte qui ne vous suit pas en retour. Rien ne change sur votre compte avant votre confirmation.',
+    q9: 'Est-ce que ça fonctionne sur TikTok ?',
+    a9: "Oui, en lecture seule. Vous importez les fichiers Follower.json et Following.json de votre export de données TikTok officiel ; FollowAudit les compare localement et vous guide pour examiner chaque profil vous-même. Il n'effectue jamais d'action sur TikTok à votre place.",
+    q10: "Puis-je être banni en l'utilisant ?",
+    a10: "Aucun outil ne peut le garantir, et les conditions d'Instagram restreignent l'accès automatisé : utilisez FollowAudit à vos risques. Il est conçu pour rester discret : listes lues page par page, désabonnements un compte à la fois avec des pauses, jamais relancés, et arrêt dès qu'Instagram réagit.",
     cta_title: 'Les deux côtés de vos abonnements, en un audit.',
     view_source: 'Voir le code sur GitHub',
     footer_note: 'Conçu pour des décisions réfléchies. Vos données restent les vôtres.',
     footer_nav: 'Navigation du pied de page',
+    guide_link: 'Guide en anglais : comment voir qui ne vous suit pas en retour',
     changelog: 'Nouveautés',
     security: 'Sécurité',
     license: 'Licence MIT',
@@ -300,8 +336,8 @@ const translations = {
     copy_error: 'La copie automatique a échoué. Téléchargez dist.js depuis GitHub.',
   },
   de: {
-    _page_title: 'FollowAudit — Sieh privat, wer dir nicht zurückfolgt',
-    _meta: 'Kostenloses Open-Source-Tool, das zeigt, wer dir auf Instagram und TikTok nicht zurückfolgt und wer dir entfolgt ist. Läuft komplett in deinem Browser.',
+    _page_title: 'FollowAudit — Sieh, wer dir auf Instagram nicht zurückfolgt',
+    _meta: 'Kostenloses Open-Source-Tool, das zeigt, wer dir auf Instagram und TikTok nicht zurückfolgt und wer dir entfolgt ist. Ohne Passwort, läuft komplett in deinem Browser.',
     skip: 'Zum Inhalt springen',
     primary_nav: 'Hauptnavigation',
     nav_features: 'Funktionen',
@@ -319,7 +355,7 @@ const translations = {
     tag_not_back: 'folgt nicht zurück',
     tag_you_not_back: 'du folgst nicht zurück',
     sample_caption: 'Beispielkonten. Deine echten Listen verlassen nie deinen Browser.',
-    hero_title: 'Sieh, wer dir nicht zurückfolgt — und wer dir entfolgt ist.',
+    hero_title: 'Sieh, wer dir auf Instagram nicht zurückfolgt — und wer dir entfolgt ist.',
     hero_body: 'FollowAudit vergleicht beide Seiten deines Instagram- oder TikTok-Kontos in einer Prüfung, schützt die Menschen, die dir wichtig sind, und ändert nichts ohne deine Bestätigung. Alles läuft in deinem Browser.',
     live_preview: 'Live-Demo ansehen',
     venue_browser: 'Desktop-Browser',
@@ -362,10 +398,19 @@ const translations = {
     a5: 'Noch nicht. Mobile Browser bieten keine Entwicklerkonsole, daher brauchst du einen Desktop-Browser.',
     q6: 'Ist es kostenlos?',
     a6: 'Ja. FollowAudit ist kostenlos und Open Source unter der MIT-Lizenz.',
+    q7: 'Was ist FollowAudit?',
+    a7: 'FollowAudit ist ein kostenloses Open-Source-Tool, das zeigt, wer dir auf Instagram nicht zurückfolgt und wer dir entfolgt ist, und den TikTok-Datenexport vergleicht. Es läuft als Skript im Tab deines eigenen Browsers: keine App zu installieren, kein Passwort zu teilen und kein Server, der deine Listen sieht.',
+    q8: 'Wie sehe ich, wer mir auf Instagram nicht zurückfolgt?',
+    a8: 'Kopiere das FollowAudit-Skript, öffne instagram.com auf einem Computer, in dem du eingeloggt bist, öffne die Browserkonsole, füge das Skript ein und drücke Enter. Eine Prüfung lädt, wem du folgst und wer dir folgt, und listet jedes Konto auf, das dir nicht zurückfolgt. An deinem Konto ändert sich nichts, bis du bestätigst.',
+    q9: 'Funktioniert es auch auf TikTok?',
+    a9: 'Ja, nur lesend. Du importierst die Dateien Follower.json und Following.json aus deinem offiziellen TikTok-Datenexport; FollowAudit vergleicht sie lokal und führt dich durch die Prüfung jedes Profils. Es führt nie Aktionen auf TikTok für dich aus.',
+    q10: 'Kann ich dafür gesperrt werden?',
+    a10: 'Das kann kein Tool versprechen, und die Instagram-Bedingungen schränken automatisierten Zugriff ein – nutze FollowAudit also auf eigenes Risiko. Es ist auf Zurückhaltung ausgelegt: Listen werden Seite für Seite gelesen, Entfolgen läuft Konto für Konto mit Pausen, wird nie wiederholt und stoppt, sobald Instagram reagiert.',
     cta_title: 'Beide Seiten deiner Follows, in einer Prüfung.',
     view_source: 'Code auf GitHub ansehen',
     footer_note: 'Gemacht für bewusste Entscheidungen. Deine Daten bleiben deine.',
     footer_nav: 'Fußzeilennavigation',
+    guide_link: 'Ratgeber auf Englisch: so siehst du, wer dir nicht zurückfolgt',
     changelog: 'Änderungen',
     security: 'Sicherheit',
     license: 'MIT-Lizenz',
@@ -379,15 +424,15 @@ const translations = {
 const LANGUAGE_KEY = 'follow-audit:site-language';
 const THEME_KEY = 'follow-audit:site-theme';
 const root = document.documentElement;
+// The landing pages have the language menu and the versus layout; the guides only share the theme and copy controls.
 const languageMenu = document.querySelector('#language-menu');
-const languageSummary = languageMenu.querySelector('summary');
-const activeLanguageLabel = document.querySelector('[data-active-language]');
-const languageButtons = [...document.querySelectorAll('[data-language]')];
+const versus = document.querySelector('.versus');
+const languageLinks = [...document.querySelectorAll('[data-language]')];
 const themeToggle = document.querySelector('#theme-toggle');
 const copyButtons = [...document.querySelectorAll('.copy-script')];
 const feedbackElements = [...document.querySelectorAll('.copy-feedback')];
 const contenders = [...document.querySelectorAll('.contender')];
-const description = document.querySelector('meta[name="description"]');
+const bundleBase = document.currentScript.src;
 const storage = {
   get(key) {
     try { return localStorage.getItem(key); } catch { return null; }
@@ -397,15 +442,20 @@ const storage = {
   },
 };
 
-let activeLanguage = initialLanguage();
+// Every language is a pre-rendered page (see scripts/localize-site.cjs); the page language is the document language.
+const activeLanguage = translations[root.lang] ? root.lang : 'en';
 let resetTimer;
 
-function initialLanguage() {
+function preferredLanguage() {
   const saved = storage.get(LANGUAGE_KEY);
   if (saved && translations[saved]) return saved;
-  const browserLanguage = navigator.language.toLowerCase();
-  if (browserLanguage.startsWith('pt')) return 'pt-BR';
-  return Object.keys(translations).find((language) => browserLanguage.startsWith(language)) || 'en';
+  const browserLanguage = navigator.language.toLowerCase().split('-')[0];
+  return Object.keys(translations).find((language) => language.toLowerCase().split('-')[0] === browserLanguage) || 'en';
+}
+
+// Only the English landing page forwards visitors: pages reached through a language URL, and guides, are never redirected.
+if (versus && activeLanguage === 'en' && preferredLanguage() !== 'en') {
+  location.replace(`${preferredLanguage().toLowerCase()}/${location.hash}`);
 }
 
 /** Sizes both contenders to the largest type that fits their halves, so the longer name sets the scale. */
@@ -422,31 +472,6 @@ function fitContenders() {
   if (Number.isFinite(scale) && scale > 0) {
     root.style.setProperty('--contender', `${Math.max(16, Math.min(168, Math.floor(reference * scale * 0.98)))}px`);
   }
-}
-
-function applyLanguage(language) {
-  activeLanguage = translations[language] ? language : 'en';
-  const copy = translations[activeLanguage];
-  root.lang = activeLanguage;
-  document.title = copy._page_title;
-  description.content = copy._meta;
-  activeLanguageLabel.textContent = activeLanguage === 'pt-BR' ? 'PT' : activeLanguage.toUpperCase();
-  languageSummary.setAttribute('aria-label', `${copy.language_label}: ${activeLanguageLabel.textContent}`);
-  languageButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.language === activeLanguage)));
-  document.querySelectorAll('[data-i18n]').forEach((element) => {
-    const value = copy[element.dataset.i18n];
-    if (value) element.textContent = value;
-  });
-  document.querySelectorAll('[data-i18n-aria-label]').forEach((element) => {
-    const value = copy[element.dataset.i18nAriaLabel];
-    if (value) element.setAttribute('aria-label', value);
-  });
-  document.querySelectorAll('[data-i18n-alt]').forEach((element) => {
-    const value = copy[element.dataset.i18nAlt];
-    if (value) element.alt = value;
-  });
-  updateThemeControl();
-  fitContenders();
 }
 
 function updateThemeControl() {
@@ -474,7 +499,7 @@ async function copyScript() {
   copyButtons.forEach((button) => { button.disabled = true; });
   setCopyLabels('copying');
   try {
-    const bundle = fetch(`dist.js?v=${Date.now()}`, { cache: 'no-store' }).then(async (response) => {
+    const bundle = fetch(new URL(`dist.js?v=${Date.now()}`, bundleBase), { cache: 'no-store' }).then(async (response) => {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const script = await response.text();
       if (script.length < 500) throw new Error('Incomplete bundle');
@@ -522,22 +547,16 @@ async function writeClipboard(pendingText) {
   if (!copied) throw new Error('Clipboard unavailable');
 }
 
-languageButtons.forEach((button) => button.addEventListener('click', () => {
-  applyLanguage(button.dataset.language);
-  storage.set(LANGUAGE_KEY, activeLanguage);
-  languageMenu.open = false;
-  languageSummary.focus();
-  feedbackElements.forEach((element) => { element.textContent = ''; });
-}));
+languageLinks.forEach((link) => link.addEventListener('click', () => storage.set(LANGUAGE_KEY, link.dataset.language)));
 
 document.addEventListener('click', (event) => {
-  if (languageMenu.open && !languageMenu.contains(event.target)) languageMenu.open = false;
+  if (languageMenu?.open && !languageMenu.contains(event.target)) languageMenu.open = false;
 });
 
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && languageMenu.open) {
+  if (event.key === 'Escape' && languageMenu?.open) {
     languageMenu.open = false;
-    languageSummary.focus();
+    languageMenu.querySelector('summary').focus();
   }
 });
 
@@ -550,12 +569,15 @@ themeToggle.addEventListener('click', () => {
 
 copyButtons.forEach((button) => button.addEventListener('click', copyScript));
 
-let fittedWidth = 0;
-new ResizeObserver(([entry]) => {
-  // Refit only when the width changes; the fit itself changes the height.
-  if (Math.abs(entry.contentRect.width - fittedWidth) < 1) return;
-  fittedWidth = entry.contentRect.width;
+updateThemeControl();
+if (versus) {
+  let fittedWidth = 0;
+  new ResizeObserver(([entry]) => {
+    // Refit only when the width changes; the fit itself changes the height.
+    if (Math.abs(entry.contentRect.width - fittedWidth) < 1) return;
+    fittedWidth = entry.contentRect.width;
+    fitContenders();
+  }).observe(versus);
+  document.fonts?.ready.then(fitContenders);
   fitContenders();
-}).observe(document.querySelector('.versus'));
-document.fonts?.ready.then(fitContenders);
-applyLanguage(activeLanguage);
+}

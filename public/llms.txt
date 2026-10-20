@@ -1,0 +1,35 @@
+# FollowAudit
+
+> FollowAudit is a free, open-source (MIT) tool that shows who doesn't follow you back and who unfollowed you on Instagram, and compares your TikTok data export. It runs as a script pasted into the browser console of your own logged-in tab: no password, no app or extension, no backend, no analytics. Your lists never leave your browser.
+
+## What it does
+
+- Instagram: scans Following and Followers once each, derives every relationship locally, and lists accounts that don't follow you back, accounts you don't follow back, and (from the second audit on) who unfollowed you since the last audit stored in your browser.
+- Protected accounts are stored locally, never enter an action queue, and can be backed up as JSON.
+- Unfollows and follower removals run one at a time after explicit confirmation, with pauses and a time-left estimate, are never retried automatically, and stop when Instagram pushes back.
+- TikTok: read-only. Import `Follower.json` and `Following.json` from the official TikTok data export, compare them locally, and review profiles one by one manually.
+- Search, filters, CSV export, five interface languages (English, Portuguese, Spanish, French, German), light and dark themes.
+
+## Constraints
+
+- Desktop browsers only (Chrome, Edge, Firefox, Safari); the browser console is required, so there is no mobile support.
+- Instagram support uses private web endpoints that can change without notice; Instagram's terms restrict automated access and heavy activity can trigger platform limits. Use at your own risk.
+- Not affiliated with Instagram, Meta, TikTok or ByteDance.
+
+## Pages
+
+- [Website (English)](https://marquezinii.github.io/follow-audit/): overview, how to run it, privacy, FAQ
+- [Website (Português)](https://marquezinii.github.io/follow-audit/pt-br/)
+- [Website (Español)](https://marquezinii.github.io/follow-audit/es/)
+- [Website (Français)](https://marquezinii.github.io/follow-audit/fr/)
+- [Website (Deutsch)](https://marquezinii.github.io/follow-audit/de/)
+- [Guide: how to see who doesn't follow you back on Instagram (English)](https://marquezinii.github.io/follow-audit/guides/who-doesnt-follow-you-back-on-instagram/): step-by-step answer, no-password alternatives, and the risks
+- [Guia: como ver quem não te segue de volta no Instagram (Português)](https://marquezinii.github.io/follow-audit/pt-br/guias/quem-nao-te-segue-de-volta-no-instagram/)
+- [Live preview with sample accounts](https://marquezinii.github.io/follow-audit/preview.html)
+
+## Source and docs
+
+- [Source code and README](https://github.com/marquezinii/follow-audit)
+- [Changelog](https://github.com/marquezinii/follow-audit/blob/main/CHANGELOG.md)
+- [Security policy](https://github.com/marquezinii/follow-audit/security/policy)
+- [License (MIT)](https://github.com/marquezinii/follow-audit/blob/main/LICENSE)

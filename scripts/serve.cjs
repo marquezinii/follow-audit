@@ -17,7 +17,7 @@ const types = {
 
 createServer((request, response) => {
   const pathname = new URL(request.url, 'http://localhost').pathname;
-  const relative = normalize(pathname === '/' ? 'preview.html' : pathname.slice(1));
+  const relative = normalize(pathname === '/' ? 'preview.html' : pathname.endsWith('/') ? `${pathname.slice(1)}index.html` : pathname.slice(1));
   const file = join(root, relative);
   if (!file.startsWith(root) || !stat(file)) {
     response.writeHead(404).end('Not found');

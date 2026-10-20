@@ -18,6 +18,14 @@
 </p>
 
 <p align="center">
+  <a href="https://marquezinii.github.io/follow-audit/">English</a> ·
+  <a href="https://marquezinii.github.io/follow-audit/pt-br/">Português</a> ·
+  <a href="https://marquezinii.github.io/follow-audit/es/">Español</a> ·
+  <a href="https://marquezinii.github.io/follow-audit/fr/">Français</a> ·
+  <a href="https://marquezinii.github.io/follow-audit/de/">Deutsch</a>
+</p>
+
+<p align="center">
   <a href="https://github.com/marquezinii/follow-audit/actions/workflows/ci.yml"><img alt="Quality" src="https://github.com/marquezinii/follow-audit/actions/workflows/ci.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-0a5cff.svg"></a>
   <img alt="Zero runtime dependencies" src="https://img.shields.io/badge/runtime_dependencies-0-12c7b4.svg">
@@ -51,6 +59,28 @@ No account data is sent to a project server. Session credentials are read only w
 | Minimize | Collapse the panel into a small pill and keep browsing while an audit or queue runs. |
 | Portable results | Exports the current view as spreadsheet-safe CSV. |
 | Five languages | English, Português, Español, Français, Deutsch, plus light and dark themes. |
+
+## FAQ
+
+### How do I see who doesn't follow me back on Instagram?
+
+Copy the script from the [website](https://marquezinii.github.io/follow-audit/), open instagram.com on a computer while logged in, paste it into the browser console and press <kbd>Enter</kbd>. One audit loads who you follow and who follows you, then lists every account that doesn't follow you back. Nothing changes on your account until you confirm.
+
+### Can I see who unfollowed me on Instagram?
+
+Instagram doesn't show this itself. FollowAudit saves your follower list in your browser after each audit and compares the next audit against it, so the first audit has nothing to compare with and every later one lists who left and who is new.
+
+### Does it need my password or an app?
+
+No. It runs in the Instagram tab you already have open and uses that session. There is no app, extension, login, server or analytics.
+
+### Does it work on TikTok?
+
+Yes, read-only: import `Follower.json` and `Following.json` from your official TikTok data export, compare them locally and review each profile manually.
+
+### Can I get banned for using it?
+
+No tool can promise that, and Instagram's terms restrict automated access, so use it at your own risk. FollowAudit is built to be gentle: lists are read page by page, unfollows run one at a time with pauses, are never retried and stop as soon as Instagram pushes back.
 
 ## Safety by construction
 
@@ -112,7 +142,7 @@ The local server prints two URLs: the live preview (`/`) with deterministic samp
 npm run check
 ```
 
-Runs ESLint, the Node test suite, TypeScript type checking, website validation (translations, CSP hash, asset references), and the production build. CI runs the same gate plus `npm audit` and verifies that the committed `public/dist.js` matches the sources.
+Runs ESLint, the Node test suite, TypeScript type checking, website validation (translations, CSP hash, per-language pages, hreflang, structured data, asset references), and the production build. CI runs the same gate plus `npm audit` and verifies that the committed `public/dist.js` matches the sources.
 
 ### Project map
 
@@ -128,9 +158,9 @@ src/
 ├── ui/              # layout template, styles, icons
 └── assets/          # brand mark and subset font embedded in the bundle
 tests/               # deterministic checks for the critical logic
-public/              # GitHub Pages website and the distributable dist.js
+public/              # GitHub Pages website (English source page, five translated pages generated at build) and the distributable dist.js
 assets/brand/        # source logo and mark files
-scripts/             # site checks, build copy, local static server
+scripts/             # site checks, language pages and sitemap generation, build copy, local static server
 ```
 
 ## Privacy model
