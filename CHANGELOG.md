@@ -2,6 +2,21 @@
 
 All notable project changes are documented here.
 
+## Unreleased
+
+### Added
+
+- Search and AI-search discoverability: one pre-rendered, crawlable website page per language (`/pt-br/`, `/es/`, `/fr/`, `/de/`) with self-canonicals, reciprocal `hreflang`, localized titles, descriptions and Open Graph data, `SoftwareApplication` structured data, a generated `sitemap.xml`, `robots.txt` and `llms.txt`.
+- Four new FAQ answers in all languages (what FollowAudit is, how to see who doesn't follow you back, TikTok support, ban risk) and a README FAQ.
+- Website checks for hreflang, canonical, structured data and English-string drift against the translations.
+- Two long-form guides on how to see who doesn't follow you back on Instagram: English (`/guides/who-doesnt-follow-you-back-on-instagram/`) and Brazilian Portuguese (`/pt-br/guias/quem-nao-te-segue-de-volta-no-instagram/`). Each opens with a direct answer, has a numbered step block and a risk section (private endpoints, Instagram's terms, no ban guarantee), `Article` and `HowTo` structured data that mirror the visible steps, reciprocal `hreflang`, sitemap and `llms.txt` entries, and links from every landing page (the Spanish, French and German pages link to the English guide).
+- Guide checks in `npm run check`: canonical and `hreflang` reciprocity, the shared Content-Security-Policy, resolvable local links and anchors, 40–60 word answers, and structured data that must match the visible steps and dates.
+
+### Changed
+
+- The website language menu is now a set of links; language is no longer swapped in the browser, which removes the flash of English. Returning visitors are still forwarded from the English root to their saved or browser language.
+- Page titles and headlines now name Instagram.
+
 ## 3.0.0 — 2026-10-20
 
 ### Added

@@ -5,15 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-mxQ4FuU3jOm0w/tnohwF/BAc039uv4Cjedwle8Yo/UA='; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <title>FollowAudit — See who doesn't follow you back, privately</title>
-    <meta name="description" content="Free, open-source tool to see who doesn't follow you back and who unfollowed you on Instagram and TikTok. Runs entirely in your browser.">
+    <title>FollowAudit — See who doesn't follow you back on Instagram</title>
+    <meta name="description" content="Free, open-source tool to see who doesn't follow you back and who unfollowed you on Instagram and TikTok. No password, runs entirely in your browser.">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
     <meta name="theme-color" content="#f3f5f9" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0a101c" media="(prefers-color-scheme: dark)">
     <link rel="canonical" href="https://marquezinii.github.io/follow-audit/">
+    <link rel="alternate" hreflang="en" href="https://marquezinii.github.io/follow-audit/">
+    <link rel="alternate" hreflang="pt-BR" href="https://marquezinii.github.io/follow-audit/pt-br/">
+    <link rel="alternate" hreflang="es" href="https://marquezinii.github.io/follow-audit/es/">
+    <link rel="alternate" hreflang="fr" href="https://marquezinii.github.io/follow-audit/fr/">
+    <link rel="alternate" hreflang="de" href="https://marquezinii.github.io/follow-audit/de/">
+    <link rel="alternate" hreflang="x-default" href="https://marquezinii.github.io/follow-audit/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FollowAudit">
-    <meta property="og:title" content="FollowAudit — See who doesn't follow you back, privately">
-    <meta property="og:description" content="Compare who you follow with who follows you on Instagram and TikTok. Free, open source, and 100% in your browser.">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:title" content="FollowAudit — See who doesn't follow you back on Instagram">
+    <meta property="og:description" content="Free, open-source tool to see who doesn't follow you back and who unfollowed you on Instagram and TikTok. No password, runs entirely in your browser.">
     <meta property="og:url" content="https://marquezinii.github.io/follow-audit/">
     <meta property="og:image" content="https://marquezinii.github.io/follow-audit/og-image.png">
     <meta property="og:image:width" content="1200">
@@ -25,6 +33,22 @@
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="manifest" href="site.webmanifest">
     <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "FollowAudit",
+  "url": "https://marquezinii.github.io/follow-audit/",
+  "description": "Free, open-source tool to see who doesn't follow you back and who unfollowed you on Instagram and TikTok. No password, runs entirely in your browser.",
+  "inLanguage": "en",
+  "applicationCategory": "BrowserApplication",
+  "operatingSystem": "Windows, macOS, Linux (desktop browser: Chrome, Edge, Firefox, Safari)",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "license": "https://github.com/marquezinii/follow-audit/blob/main/LICENSE",
+  "image": "https://marquezinii.github.io/follow-audit/og-image.png",
+  "sameAs": ["https://github.com/marquezinii/follow-audit"],
+  "author": { "@type": "Person", "name": "marquezinii", "url": "https://github.com/marquezinii" }
+}</script>
     <script>try{const t=localStorage.getItem('follow-audit:site-theme');document.documentElement.dataset.theme=t==='dark'||t==='light'?t:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch{}</script>
     <link rel="stylesheet" href="site.css">
   </head>
@@ -58,11 +82,11 @@
             <summary class="tool" aria-label="Language: EN"><span data-active-language>EN</span></summary>
             <div class="language-popover">
               <p data-i18n="language_label">Language</p>
-              <button type="button" data-language="en" lang="en"><strong>English</strong><small>EN</small></button>
-              <button type="button" data-language="pt-BR" lang="pt-BR"><strong>Português</strong><small>PT</small></button>
-              <button type="button" data-language="es" lang="es"><strong>Español</strong><small>ES</small></button>
-              <button type="button" data-language="fr" lang="fr"><strong>Français</strong><small>FR</small></button>
-              <button type="button" data-language="de" lang="de"><strong>Deutsch</strong><small>DE</small></button>
+              <a href="./" hreflang="en" lang="en" data-language="en" aria-current="page"><strong>English</strong><small>EN</small></a>
+              <a href="pt-br/" hreflang="pt-BR" lang="pt-BR" data-language="pt-BR"><strong>Português</strong><small>PT</small></a>
+              <a href="es/" hreflang="es" lang="es" data-language="es"><strong>Español</strong><small>ES</small></a>
+              <a href="fr/" hreflang="fr" lang="fr" data-language="fr"><strong>Français</strong><small>FR</small></a>
+              <a href="de/" hreflang="de" lang="de" data-language="de"><strong>Deutsch</strong><small>DE</small></a>
             </div>
           </details>
           <button id="theme-toggle" class="tool" type="button" aria-label="Switch to dark mode" data-i18n-aria-label="theme_dark">
@@ -101,7 +125,7 @@
 
         <div class="bill">
           <div class="bill-offer">
-            <h1 id="offer" data-i18n="hero_title">See who doesn't follow you back — and who unfollowed you.</h1>
+            <h1 id="offer" data-i18n="hero_title">See who doesn't follow you back on Instagram — and who unfollowed you.</h1>
             <p class="lead" data-i18n="hero_body">FollowAudit compares both sides of your Instagram or TikTok in one audit, keeps the people who matter protected, and changes nothing until you confirm. It runs entirely in your browser.</p>
             <div class="actions">
               <button class="button primary copy-script" type="button">
@@ -147,6 +171,7 @@
             <li><span data-i18n="r5">Run the audit and review</span><span class="key" data-i18n="r5_key">Your call</span></li>
           </ol>
           <p class="fine" data-i18n="run_tip">On a Mac, open the console with Cmd + Option + J and paste with Cmd + V. Chrome may ask you to type “allow pasting” the first time.</p>
+          <a class="text-link" href="guides/who-doesnt-follow-you-back-on-instagram/"><span data-i18n="guide_link">Guide: how to see who doesn't follow you back</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
           <div class="console" aria-hidden="true"><span class="prompt">&gt;</span><span class="code">(()=&gt;{ FollowAudit … })()</span><span class="caret"></span></div>
         </article>
       </section>
@@ -172,10 +197,14 @@ Your decisions stay yours.</h2>
       <section id="faq" class="sheet faq" aria-labelledby="faq-title">
         <h2 id="faq-title" data-i18n="faq_title">Questions before the bell</h2>
         <div class="faq-list">
+          <details><summary data-i18n="q7">What is FollowAudit?</summary><p data-i18n="a7">FollowAudit is a free, open-source tool that shows who doesn't follow you back and who unfollowed you on Instagram, and compares your TikTok data export. It runs as a script in your own browser tab, so there is no app to install, no password to share and no server that sees your lists.</p></details>
+          <details><summary data-i18n="q8">How do I see who doesn't follow me back on Instagram?</summary><p data-i18n="a8">Copy the FollowAudit script, open instagram.com on a computer while logged in, open the browser console, paste the script and press Enter. One audit loads who you follow and who follows you, then lists every account that doesn't follow you back. Nothing changes on your account until you confirm.</p></details>
           <details><summary data-i18n="q1">Is FollowAudit safe to use?</summary><p data-i18n="a1">The script talks only to Instagram, from your own logged-in tab, and never to a third-party server. It reads lists page by page, never retries an unfollow, pauses between actions and stops as soon as Instagram refuses a request.</p></details>
+          <details><summary data-i18n="q10">Can I get banned for using it?</summary><p data-i18n="a10">No tool can promise that, and Instagram's terms restrict automated access, so use FollowAudit at your own risk. It is built to be gentle: lists are read page by page, unfollows run one at a time with pauses, are never retried, and stop as soon as Instagram pushes back.</p></details>
           <details><summary data-i18n="q2">Does it need my password?</summary><p data-i18n="a2">No. It runs inside the Instagram tab you already have open and uses that session.</p></details>
           <details><summary data-i18n="q3">Why do I paste it into the console?</summary><p data-i18n="a3">Running inside the page is what keeps it private: no extension permissions, no app login, no server in the middle. You can read the full source on GitHub before running it.</p></details>
           <details><summary data-i18n="q4">How does “who unfollowed you” work?</summary><p data-i18n="a4">After each audit, FollowAudit saves follower IDs and usernames in your browser. The next audit compares against them. You can clear this history at any time in Settings.</p></details>
+          <details><summary data-i18n="q9">Does it work on TikTok?</summary><p data-i18n="a9">Yes, read-only. You import the Follower.json and Following.json files from your official TikTok data export; FollowAudit compares them locally and guides you through reviewing each profile yourself. It never performs TikTok actions for you.</p></details>
           <details><summary data-i18n="q5">Can I use it on my phone?</summary><p data-i18n="a5">Not yet. Mobile browsers do not offer a developer console, so you need a desktop browser.</p></details>
           <details><summary data-i18n="q6">Is it free?</summary><p data-i18n="a6">Yes. FollowAudit is free and open source under the MIT license.</p></details>
         </div>
@@ -198,6 +227,7 @@ Your decisions stay yours.</h2>
       </a>
       <p data-i18n="footer_note">Built for deliberate decisions. Your data stays yours.</p>
       <nav aria-label="Footer navigation" data-i18n-aria-label="footer_nav">
+        <a href="guides/who-doesnt-follow-you-back-on-instagram/" data-i18n="guide_link">Guide: how to see who doesn't follow you back</a>
         <a href="https://github.com/marquezinii/follow-audit">GitHub</a>
         <a href="https://github.com/marquezinii/follow-audit/blob/main/CHANGELOG.md" data-i18n="changelog">Changelog</a>
         <a href="https://github.com/marquezinii/follow-audit/security/policy" data-i18n="security">Security</a>
