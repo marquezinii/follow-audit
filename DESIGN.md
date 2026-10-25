@@ -301,6 +301,9 @@ The three boxes share 1.5px ink borders with 26px padding. Titles are 17px/800 c
 ### Guarantee Band (site)
 A full-bleed `band` strip, dark in both themes. It holds four columns (2 below 1080px, 1 below 560px) split by 14% alpha light hairlines, each with a 30px bright-teal icon, a 15px/800 caps title and a `band-muted` line.
 
+### Guide Pages (site)
+Long-form answers (`/guides/…`, `/pt-br/guias/…`) reuse the masthead, closer and footer unchanged. The page opens like the bout: a 4px double ink rule, a caps label, a headline (`clamp(30px, 4.2vw, 56px)`, 800, with the parenthetical in muted) and a 19–21px direct answer. Below it a two-column grid (`0.8fr / 1.4fr`, stacked below 820px) pairs a sticky "On this page" list (hairline rows, tabular index numbers) with the article. Each section starts at a 1.5px ink rule, an 800-weight h2 and a 40–60 word `.answer`; h3s are 18px/800. Numbered steps and risks are ruled lists, not cards: 34px/800 ink numerals (never blue, since they are not a verdict or an action) beside a bold step name and a muted line. Prose links are Verdict Blue.
+
 ### Dialogs (panel)
 A 420px max panel on `raised` with 18px radius, 1px `rule` border, Float shadow and a 50% navy backdrop with 2px blur. It leads with a 44px rounded-square icon tile (blue, or red for confirm). The confirm list is hairline-ruled with a 240px max height. The footer puts quiet and solid buttons on the right.
 
