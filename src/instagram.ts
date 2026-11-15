@@ -178,10 +178,12 @@ export class InstagramGateway {
     const encodedId = encodeURIComponent(accountId);
     const url = action === 'remove_follower'
       ? `/api/v1/friendships/remove_follower/${encodedId}/`
-      : `/web/friendships/${encodedId}/unfollow/`;
+      : `/api/v1/friendships/destroy/${encodedId}/`;
     const response = await request(url, {
       method: 'POST',
       credentials: 'include',
+      // Instagram's own web client names the target in the body when unfollowing.
+      body: action === 'unfollow' ? new URLSearchParams({ user_id: accountId }).toString() : undefined,
       headers: {
         'content-type': 'application/x-www-form-urlencoded',
         'x-csrftoken': csrf,

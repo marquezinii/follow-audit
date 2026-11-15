@@ -103,6 +103,32 @@ void test('identifies follower-removal requests as the Instagram web client', as
   }
 });
 
+void test('unfollows through the current friendships endpoint', async () => {
+  const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  const originalFetch = globalThis.fetch;
+  let url: string | undefined;
+  let body: unknown;
+
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: { cookie: 'csrftoken=test-token' } });
+  globalThis.fetch = (input, init) => {
+    if (typeof input !== 'string') throw new Error('Expected a string URL.');
+    url = input;
+    body = init?.body;
+    return Promise.resolve(Response.json({ status: 'ok' }));
+  };
+
+  try {
+    await new InstagramGateway().unfollow('12', new AbortController().signal);
+    // The legacy /web/friendships/<id>/unfollow/ route answers HTTP 404 for every account.
+    assert.equal(url, '/api/v1/friendships/destroy/12/');
+    assert.equal(String(body), 'user_id=12');
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalDocument) Object.defineProperty(globalThis, 'document', originalDocument);
+    else Reflect.deleteProperty(globalThis, 'document');
+  }
+});
+
 void test('resolves supported locales and formats translated values', () => {
   assert.equal(resolveLocale(null, 'pt-PT'), 'pt-BR');
   assert.equal(resolveLocale('fr', 'en-US'), 'fr');
