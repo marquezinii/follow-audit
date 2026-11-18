@@ -77,13 +77,15 @@ void test('cancellation interrupts the queue delay', async () => {
   await assert.rejects(run, /abort|cancel/i);
 });
 
+const dtsgScript = { textContent: 'requireLazy(["DTSGInitialData",[],{"token":"test-dtsg"},258])' };
+
 void test('identifies follower-removal requests as the Instagram web client', async () => {
   const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
   const originalFetch = globalThis.fetch;
   let url: string | undefined;
   let headers: Headers | undefined;
 
-  Object.defineProperty(globalThis, 'document', { configurable: true, value: { cookie: 'csrftoken=test-token' } });
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: { cookie: 'csrftoken=test-token', scripts: [dtsgScript] } });
   globalThis.fetch = (input, init) => {
     if (typeof input !== 'string') throw new Error('Expected a string URL.');
     url = input;
@@ -109,7 +111,7 @@ void test('unfollows through the current friendships endpoint', async () => {
   let url: string | undefined;
   let body: unknown;
 
-  Object.defineProperty(globalThis, 'document', { configurable: true, value: { cookie: 'csrftoken=test-token' } });
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: { cookie: 'csrftoken=test-token', scripts: [dtsgScript] } });
   globalThis.fetch = (input, init) => {
     if (typeof input !== 'string') throw new Error('Expected a string URL.');
     url = input;
@@ -121,7 +123,29 @@ void test('unfollows through the current friendships endpoint', async () => {
     await new InstagramGateway().unfollow('12', new AbortController().signal);
     // The legacy /web/friendships/<id>/unfollow/ route answers HTTP 404 for every account.
     assert.equal(url, '/api/v1/friendships/destroy/12/');
-    assert.equal(String(body), 'user_id=12');
+    // Without fb_dtsg Instagram answers HTTP 200 with its HTML app shell and does nothing.
+    assert.equal(String(body), 'user_id=12&jazoest=21038&fb_dtsg=test-dtsg');
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalDocument) Object.defineProperty(globalThis, 'document', originalDocument);
+    else Reflect.deleteProperty(globalThis, 'document');
+  }
+});
+
+void test('refuses to send an unfollow without the Instagram request token', async () => {
+  const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  const originalFetch = globalThis.fetch;
+  let called = false;
+
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: { cookie: 'csrftoken=test-token', scripts: [] } });
+  globalThis.fetch = () => {
+    called = true;
+    return Promise.resolve(Response.json({ status: 'ok' }));
+  };
+
+  try {
+    await assert.rejects(new InstagramGateway().unfollow('12', new AbortController().signal), /request token/);
+    assert.equal(called, false);
   } finally {
     globalThis.fetch = originalFetch;
     if (originalDocument) Object.defineProperty(globalThis, 'document', originalDocument);
@@ -226,7 +250,7 @@ void test('exports spreadsheet-safe CSV', () => {
 void test('treats an HTTP 200 refusal body as a blocked action', async () => {
   const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
   const originalFetch = globalThis.fetch;
-  Object.defineProperty(globalThis, 'document', { configurable: true, value: { cookie: 'csrftoken=test-token' } });
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: { cookie: 'csrftoken=test-token', scripts: [dtsgScript] } });
   globalThis.fetch = () => Promise.resolve(Response.json({ status: 'fail', message: 'feedback_required', spam: true }));
 
   try {

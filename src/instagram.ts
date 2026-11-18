@@ -35,6 +35,33 @@ function cookie(name: string): string | undefined {
   return part ? decodeURIComponent(part.slice(prefix.length)) : undefined;
 }
 
+type PageRequire = (module: string) => unknown;
+
+/**
+ * Instagram's anti-forgery token for POST requests. Without it, write endpoints answer
+ * HTTP 200 with the HTML app shell instead of acting.
+ */
+function dtsgToken(): string | undefined {
+  try {
+    const pageRequire = (globalThis as { require?: PageRequire }).require;
+    const module = typeof pageRequire === 'function' ? pageRequire('DTSG') : undefined;
+    const token = isObject(module) && typeof module.getToken === 'function' ? (module.getToken as () => unknown)() : undefined;
+    if (typeof token === 'string' && token) return token;
+  } catch {
+    // The page module system is an implementation detail; fall back to the server-rendered token.
+  }
+  for (const script of Array.from(document.scripts ?? [])) {
+    const match = /"DTSGInitialData",\[\],\{"token":"([^"]+)"/.exec(script.textContent ?? '');
+    if (match?.[1]) return match[1];
+  }
+  return undefined;
+}
+
+/** Instagram's web client derives this checksum from the CSRF token and sends it with every POST. */
+function jazoest(csrf: string): string {
+  return `2${[...csrf].reduce((sum, char) => sum + (char.codePointAt(0) ?? 0), 0)}`;
+}
+
 function listUrl(kind: ListName, cursor: string | undefined): URL {
   const userId = currentUserId();
   if (!userId) {
@@ -174,16 +201,24 @@ export class InstagramGateway {
     if (!csrf) {
       throw new Error('The current session has no CSRF token.');
     }
+    const dtsg = dtsgToken();
+    if (!dtsg) {
+      throw new Error('The Instagram request token was not found. Reload Instagram and try again.');
+    }
 
     const encodedId = encodeURIComponent(accountId);
     const url = action === 'remove_follower'
       ? `/api/v1/friendships/remove_follower/${encodedId}/`
       : `/api/v1/friendships/destroy/${encodedId}/`;
+    const body = new URLSearchParams();
+    // Instagram's own web client names the target in the body when unfollowing.
+    if (action === 'unfollow') body.set('user_id', accountId);
+    body.set('jazoest', jazoest(csrf));
+    body.set('fb_dtsg', dtsg);
     const response = await request(url, {
       method: 'POST',
       credentials: 'include',
-      // Instagram's own web client names the target in the body when unfollowing.
-      body: action === 'unfollow' ? new URLSearchParams({ user_id: accountId }).toString() : undefined,
+      body: body.toString(),
       headers: {
         'content-type': 'application/x-www-form-urlencoded',
         'x-csrftoken': csrf,

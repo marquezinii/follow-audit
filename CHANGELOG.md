@@ -17,6 +17,10 @@ All notable project changes are documented here.
 - The website language menu is now a set of links; language is no longer swapped in the browser, which removes the flash of English. Returning visitors are still forwarded from the English root to their saved or browser language.
 - Page titles and headlines now name Instagram.
 
+### Fixed
+
+- Instagram unfollows and follower removals work again. Instagram now requires its `fb_dtsg` request token on write requests and, without it, answers HTTP 200 with its web page, which stopped the queue on the first account. FollowAudit now sends the token (and `jazoest`) like Instagram's own web client, and refuses to send the action if the token cannot be found.
+
 ## 3.0.0 — 2026-10-20
 
 ### Added
