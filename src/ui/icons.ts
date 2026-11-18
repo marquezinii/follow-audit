@@ -1,6 +1,7 @@
 export type IconName =
   | 'arrow' | 'check' | 'chevron-left' | 'chevron-right' | 'close' | 'download' | 'info' | 'lock' | 'minimize' | 'moon' | 'scan'
-  | 'search' | 'select' | 'settings' | 'shield' | 'shield-check' | 'sun' | 'trash' | 'upload' | 'user-minus';
+  | 'search' | 'select' | 'settings' | 'shield' | 'shield-check' | 'sun' | 'trash' | 'upload' | 'user-minus'
+  | 'activity' | 'chart' | 'external' | 'filter' | 'keyboard' | 'play' | 'undo' | 'user-plus' | 'user-x';
 
 const paths: Record<IconName, string> = {
   arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
@@ -23,6 +24,15 @@ const paths: Record<IconName, string> = {
   trash: '<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/>',
   upload: '<path d="M12 20V9m0 0 4 4m-4-4-4 4M5 4h14"/>',
   'user-minus': '<circle cx="9" cy="8" r="4"/><path d="M2 20a7 7 0 0 1 14 0M16 11h6"/>',
+  activity: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+  chart: '<path d="M4 4v16h16"/><path d="m7 15 4-4 3 3 5-6"/>',
+  external: '<path d="M14 4h6v6M20 4l-9 9M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/>',
+  filter: '<path d="M4 6h16M7 12h10M10 18h4"/>',
+  keyboard: '<rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/>',
+  play: '<path d="M8 5.5v13l10-6.5-10-6.5Z"/>',
+  undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+  'user-plus': '<circle cx="9" cy="8" r="4"/><path d="M2 20a7 7 0 0 1 14 0M19 8v6M16 11h6"/>',
+  'user-x': '<circle cx="9" cy="8" r="4"/><path d="M2 20a7 7 0 0 1 14 0M17 9l4 4M21 9l-4 4"/>',
 };
 
 /** Returns an inline, decorative SVG icon that inherits the current text color. */

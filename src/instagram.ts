@@ -17,6 +17,12 @@ export class ActionBlockedError extends Error {
   }
 }
 
+/**
+ * Instagram answered an action with something other than its JSON API (usually its HTML app shell).
+ * Its request contract probably changed, so this copy of FollowAudit may be outdated.
+ */
+export class UnexpectedResponseError extends ActionBlockedError {}
+
 /** True when an action error means the queue must stop instead of moving to the next account. */
 export function isBlockingError(error: unknown): boolean {
   return error instanceof ActionBlockedError
@@ -193,7 +199,44 @@ export class InstagramGateway {
     await this.changeRelationship(accountId, 'unfollow', signal);
   }
 
-  private async changeRelationship(accountId: string, action: 'remove_follower' | 'unfollow', signal: AbortSignal): Promise<void> {
+  /** Follows one account (used to follow back and to undo an unfollow) without retrying it. */
+  async follow(accountId: string, signal: AbortSignal): Promise<void> {
+    await this.changeRelationship(accountId, 'follow', signal);
+  }
+
+  /** Withdraws a follow request sent to a private account. Instagram treats it as an unfollow. */
+  async cancelRequest(accountId: string, signal: AbortSignal): Promise<void> {
+    await this.changeRelationship(accountId, 'unfollow', signal);
+  }
+
+  /**
+   * Confirms, without changing anything, that Instagram still accepts FollowAudit's action requests:
+   * it "unfollows" the signed-in account itself, which is always a no-op.
+   *
+   * @throws {UnexpectedResponseError} When the request contract no longer works.
+   */
+  async precheck(signal: AbortSignal): Promise<void> {
+    const self = currentUserId();
+    if (!self) throw new Error('The current Instagram session could not be identified.');
+    await this.changeRelationship(self, 'unfollow', signal);
+  }
+
+  /**
+   * Finds an account's numeric ID from its public profile page (one read-only request).
+   *
+   * @throws {Error} When the profile does not exist anymore or exposes no ID.
+   */
+  async resolveUserId(username: string, signal: AbortSignal): Promise<string> {
+    if (!/^[A-Za-z0-9._]{1,30}$/.test(username)) throw new Error('Invalid username.');
+    const response = await request(`/${encodeURIComponent(username)}/`, { method: 'GET', credentials: 'include', signal });
+    if (!response.ok) throw new HttpError(response.status);
+    const html = await response.text();
+    const id = /"profile_id":"(\d+)"/.exec(html)?.[1] ?? /"page_id":"profilePage_(\d+)"/.exec(html)?.[1];
+    if (!id) throw new Error(`@${username} could not be found. The account may have been renamed or deleted.`);
+    return id;
+  }
+
+  private async changeRelationship(accountId: string, action: 'remove_follower' | 'unfollow' | 'follow', signal: AbortSignal): Promise<void> {
     if (!/^\d+$/.test(accountId)) {
       throw new Error('Invalid account ID.');
     }
@@ -207,12 +250,12 @@ export class InstagramGateway {
     }
 
     const encodedId = encodeURIComponent(accountId);
-    const url = action === 'remove_follower'
-      ? `/api/v1/friendships/remove_follower/${encodedId}/`
-      : `/api/v1/friendships/destroy/${encodedId}/`;
+    const endpoint = { remove_follower: 'remove_follower', unfollow: 'destroy', follow: 'create' }[action];
+    const url = `/api/v1/friendships/${endpoint}/${encodedId}/`;
     const body = new URLSearchParams();
-    // Instagram's own web client names the target in the body when unfollowing.
-    if (action === 'unfollow') body.set('user_id', accountId);
+    // Instagram's own web client names the target in the body when following or unfollowing.
+    if (action !== 'remove_follower') body.set('user_id', accountId);
+    if (action === 'follow') body.set('container_module', 'profile');
     body.set('jazoest', jazoest(csrf));
     body.set('fb_dtsg', dtsg);
     const response = await request(url, {
@@ -238,7 +281,7 @@ export class InstagramGateway {
 async function assertActionAccepted(response: Response): Promise<void> {
   // A login or checkpoint page served with HTTP 200 means the action did not happen.
   if (response.headers.get('content-type')?.includes('text/html')) {
-    throw new ActionBlockedError('Instagram answered with a web page instead of confirming the action.');
+    throw new UnexpectedResponseError('Instagram answered with a web page instead of confirming the action.');
   }
   let body: unknown;
   try {

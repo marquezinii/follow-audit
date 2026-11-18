@@ -1,0 +1,50 @@
+{
+  "users": [
+    {
+      "id": "1000000001",
+      "strong_id__": "1000000001",
+      "fbid_v2": "17841400000000001",
+      "full_name": "Sample Airline",
+      "is_private": false,
+      "is_verified": true,
+      "pk": "1000000001",
+      "pk_id": "1000000001",
+      "profile_pic_id": "3000000000000000001_1000000001",
+      "profile_pic_url": "https://scontent.cdninstagram.com/v/t51.2885-19/sample_1.jpg",
+      "username": "sample.airline",
+      "account_badges": [],
+      "has_anonymous_profile_picture": false,
+      "third_party_downloads_enabled": 1,
+      "latest_reel_media": 1795008763,
+      "is_favorite": false
+    },
+    {
+      "id": "1000000002",
+      "strong_id__": "1000000002",
+      "fbid_v2": "17841400000000002",
+      "full_name": "",
+      "is_private": true,
+      "is_verified": false,
+      "pk": "1000000002",
+      "pk_id": "1000000002",
+      "profile_pic_url": "https://scontent.cdninstagram.com/v/t51.2885-19/default.jpg",
+      "username": "quiet.account",
+      "account_badges": [],
+      "has_anonymous_profile_picture": true,
+      "third_party_downloads_enabled": 0,
+      "latest_reel_media": 0,
+      "is_favorite": false
+    }
+  ],
+  "big_list": false,
+  "page_size": 12,
+  "next_max_id": null,
+  "has_more": false,
+  "should_limit_list_of_followers": false,
+  "use_clickable_see_more": false,
+  "show_spam_follow_request_tab": false,
+  "follow_ranking_token": "sample-token",
+  "should_limit_list_of_followings": false,
+  "hidden_following_account_count": 0,
+  "status": "ok"
+}

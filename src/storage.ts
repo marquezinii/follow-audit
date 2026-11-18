@@ -3,6 +3,9 @@ import { parseSnapshot, sanitizeIds, type FollowerSnapshot } from './core';
 /** Prefix shared by every key FollowAudit writes to localStorage. */
 export const STORAGE_PREFIX = 'follow-audit:';
 const SNAPSHOT_PREFIX = `${STORAGE_PREFIX}snapshot:`;
+const HISTORY_PREFIX = `${STORAGE_PREFIX}history:`;
+const LOG_PREFIX = `${STORAGE_PREFIX}log:`;
+const QUEUE_PREFIX = `${STORAGE_PREFIX}queue:`;
 const MAX_SNAPSHOT_CHARS = 2_500_000;
 
 export function readText(key: string): string | null {
@@ -14,9 +17,22 @@ export function writeText(key: string, value: string): boolean {
   try { localStorage.setItem(key, value); return true; } catch { return false; }
 }
 
-function readJson(key: string): unknown {
+export function readJson(key: string): unknown {
   try { return JSON.parse(readText(key) ?? 'null') as unknown; } catch { return null; }
 }
+
+export function writeJson(key: string, value: unknown): boolean {
+  return writeText(key, JSON.stringify(value));
+}
+
+export function removeKey(key: string): void {
+  try { localStorage.removeItem(key); } catch { /* Storage unavailable: nothing to remove. */ }
+}
+
+/** Per-account keys: audit history, action log and the resumable queue. */
+export const historyKey = (platform: string, account: string): string => `${HISTORY_PREFIX}${platform}:${account}`;
+export const logKey = (account: string): string => `${LOG_PREFIX}instagram:${account}`;
+export const queueKey = (account: string): string => `${QUEUE_PREFIX}instagram:${account}`;
 
 export function loadIds(key: string): Set<string> {
   return new Set(sanitizeIds(readJson(key)) ?? []);
@@ -40,11 +56,11 @@ export function saveSnapshot(key: string, snapshot: FollowerSnapshot): boolean {
   return value.length <= MAX_SNAPSHOT_CHARS && writeText(key, value);
 }
 
-/** Removes every saved follower snapshot plus the extra keys given. */
+/** Removes every saved follower snapshot, audit history and action log, plus the extra keys given. */
 export function clearHistory(extraKeys: readonly string[]): void {
   try {
     const keys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
-      .filter((key): key is string => key !== null && key.startsWith(SNAPSHOT_PREFIX));
+      .filter((key): key is string => key !== null && [SNAPSHOT_PREFIX, HISTORY_PREFIX, LOG_PREFIX].some(prefix => key.startsWith(prefix)));
     for (const key of [...keys, ...extraKeys]) localStorage.removeItem(key);
   } catch { /* Storage unavailable: nothing was persisted. */ }
 }

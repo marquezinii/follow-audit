@@ -7,6 +7,8 @@ export interface Account {
   readonly isVerified: boolean;
   readonly followsYou: boolean;
   readonly youFollow: boolean;
+  /** Instagram reports the account still uses the default silhouette. */
+  readonly hasAnonymousAvatar?: boolean;
 }
 
 export interface AccountPage {
@@ -29,6 +31,10 @@ interface RunOptions<T> extends QueueTiming {
   readonly maxConsecutiveFailures?: number;
   /** Halts the queue immediately when an error signals that continuing is unsafe (rate limits, expired sessions). */
   readonly isFatal?: (error: unknown) => boolean;
+  /** Replaces the planned pause after an item, e.g. to add jitter or slow down after a failure. */
+  readonly adjustDelay?: (plannedMs: number, failed: boolean) => number;
+  /** Runs before each action; may wait (rolling hourly cap) and must honor the signal. */
+  readonly beforeEach?: (item: T, signal: AbortSignal) => Promise<void>;
 }
 
 /** Raised when the action queue stops itself to protect the account. */
@@ -87,6 +93,7 @@ function parseAccount(value: unknown, kind: ListKind): Account {
     isVerified: value.is_verified,
     followsYou: kind === 'followers' || relationship.followed_by,
     youFollow: kind === 'following' || relationship.following,
+    hasAnonymousAvatar: value.has_anonymous_profile_picture === true,
   };
 }
 
@@ -159,6 +166,7 @@ export async function runSequential<T>(
       continue;
     }
 
+    await options.beforeEach?.(item, signal);
     let error: unknown;
     try {
       await execute(item, signal);
@@ -179,10 +187,10 @@ export async function runSequential<T>(
       continue;
     }
 
-    const delay = (index + 1) % Math.max(1, options.batchSize) === 0
+    const planned = (index + 1) % Math.max(1, options.batchSize) === 0
       ? options.batchDelayMs
       : options.delayMs;
-    await wait(delay, signal);
+    await wait(options.adjustDelay ? options.adjustDelay(planned, error !== undefined) : planned, signal);
   }
 }
 

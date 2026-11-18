@@ -1,0 +1,17 @@
+{
+  "friendship_status": {
+    "blocking": false,
+    "followed_by": false,
+    "following": false,
+    "incoming_request": false,
+    "is_bestie": false,
+    "is_eligible_to_subscribe": false,
+    "is_feed_favorite": false,
+    "is_private": true,
+    "is_restricted": false,
+    "muting": false,
+    "outgoing_request": false
+  },
+  "previous_following": true,
+  "status": "ok"
+}
