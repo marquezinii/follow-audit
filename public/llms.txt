@@ -25,6 +25,10 @@
 - [Website (Deutsch)](https://marquezinii.github.io/follow-audit/de/)
 - [Guide: how to see who doesn't follow you back on Instagram (English)](https://marquezinii.github.io/follow-audit/guides/who-doesnt-follow-you-back-on-instagram/): step-by-step answer, no-password alternatives, and the risks
 - [Guia: como ver quem não te segue de volta no Instagram (Português)](https://marquezinii.github.io/follow-audit/pt-br/guias/quem-nao-te-segue-de-volta-no-instagram/)
+- [Guide: how to see who unfollowed you on Instagram (English)](https://marquezinii.github.io/follow-audit/guides/who-unfollowed-you-on-instagram/): how the comparison between audits works, why the first audit is only a baseline, and what the list can't tell you
+- [Guia: como ver quem deixou de te seguir no Instagram (Português)](https://marquezinii.github.io/follow-audit/pt-br/guias/quem-deixou-de-te-seguir-no-instagram/)
+- [Guide: Instagram unfollow limits and how to unfollow safely (English)](https://marquezinii.github.io/follow-audit/guides/instagram-unfollow-limits/): why there is no published limit, what action blocks look like, and how FollowAudit's queue paces and stops itself
+- [Guia: limite para deixar de seguir no Instagram (Português)](https://marquezinii.github.io/follow-audit/pt-br/guias/limite-de-deixar-de-seguir-no-instagram/)
 - [Live preview with sample accounts](https://marquezinii.github.io/follow-audit/preview.html)
 
 ## Source and docs
