@@ -32,7 +32,8 @@ No app, extension, login, or server: a readable open-source script that runs in 
 
 ## Capabilities and Constraints
 
-- Instagram: scan Following / Followers, relationship derived from the opposite list, search, views (not following back, you don't follow back, all, protected, unfollowed you), protected accounts with JSON backup, CSV export, confirmed sequential unfollow / follower removal with pacing, ETA, and automatic halt.
+- Instagram: scan Following / Followers, relationship derived from the opposite list, search and filters, views (not following back, you don't follow back, all, protected, unfollowed you, sent follow requests), protected accounts with JSON backup, CSV / XLSX / JSON export, confirmed sequential unfollow / follower removal / follow back / request cancellation with a no-op pre-check, varied pacing, an hourly cap, ETA, automatic halt and resume, an activity log with undo, and follower history.
+- Distribution: console paste, a self-updating userscript, and a click-to-run browser extension (`activeTab` + `scripting`).
 - TikTok: import `Follower.json` + `Following.json`, compare locally, guided one-by-one manual review. No automated TikTok actions.
 - Change tracking: follower snapshot per account in `localStorage`.
 - Five locales: en, pt-BR, es, fr, de. Light and dark themes.

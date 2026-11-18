@@ -2,10 +2,21 @@
 
 All notable project changes are documented here.
 
-## Unreleased
+## 3.1.0 — 2026-11-18
 
 ### Added
 
+- Resumable action queue: a confirmed queue is saved per account and can be resumed from the report after it pauses itself or the tab closes.
+- Follow back from “You don’t follow back”, next to Remove.
+- Sent follow requests: import `pending_follow_requests.json` from Instagram’s data download and cancel the requests you no longer want. Requests already accepted are dropped.
+- Activity log of every action made through FollowAudit, with undo (follow again) for unfollows.
+- Follower history: a chart of your follower count per audit and, for each audit, who arrived and who left.
+- Filters (verified, private, no profile photo), Shift+click ranges, “select the first N”, clear selection, keyboard shortcuts (J/K/X/A/P/?) with a help dialog, compact density, and a profile preview beside the panel.
+- Exports as Excel (`.xlsx`) and JSON alongside CSV.
+- Userscript with a launcher button and automatic updates, and a Manifest V3 browser extension (`activeTab` + `scripting` only), both linked from the website.
+- Safety: a no-op pre-check before each queue, ±30% pause variation, a doubled pause after a failure, a rolling hourly cap (40 by default), persisted pacing settings, and a notice when a console copy is more than 45 days old.
+- Contract tests against anonymized Instagram response fixtures and a Playwright end-to-end suite in CI.
+- Two new guides in English and Brazilian Portuguese: who unfollowed you on Instagram, and Instagram unfollow limits.
 - Search and AI-search discoverability: one pre-rendered, crawlable website page per language (`/pt-br/`, `/es/`, `/fr/`, `/de/`) with self-canonicals, reciprocal `hreflang`, localized titles, descriptions and Open Graph data, `SoftwareApplication` structured data, a generated `sitemap.xml`, `robots.txt` and `llms.txt`.
 - Four new FAQ answers in all languages (what FollowAudit is, how to see who doesn't follow you back, TikTok support, ban risk) and a README FAQ.
 - Website checks for hreflang, canonical, structured data and English-string drift against the translations.
@@ -16,6 +27,7 @@ All notable project changes are documented here.
 
 - The website language menu is now a set of links; language is no longer swapped in the browser, which removes the flash of English. Returning visitors are still forwarded from the English root to their saved or browser language.
 - Page titles and headlines now name Instagram.
+- An HTML answer from Instagram now stops the queue with “Instagram answered in an unexpected way … get the latest version” instead of telling you to wait a few hours.
 
 ### Fixed
 

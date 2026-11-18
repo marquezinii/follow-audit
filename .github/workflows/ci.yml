@@ -30,5 +30,9 @@ jobs:
         run: npm audit --audit-level=high
       - name: Quality gate
         run: npm run check
-      - name: Distributable is up to date
-        run: git diff --exit-code -- public/dist.js || (echo "::error::public/dist.js is stale. Run npm run build and commit it." && exit 1)
+      - name: Distributables are up to date
+        run: git diff --exit-code -- public/dist.js public/followaudit.user.js public/followaudit-extension.zip || (echo "::error::A distributable in public/ is stale. Run npm run build and commit it." && exit 1)
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end tests
+        run: npm run test:e2e

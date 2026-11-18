@@ -15,3 +15,5 @@ for (const locale of locales.filter((candidate) => candidate !== 'en')) {
   writeFileSync(join(publicDir, folder(locale), 'index.html'), renderLocale(html, translations, locale));
 }
 writeFileSync(join(publicDir, 'sitemap.xml'), sitemap(html, locales));
+
+require('./build-distributions.cjs');

@@ -51,13 +51,18 @@ No account data is sent to a project server. Session credentials are read only w
 | --- | --- |
 | One two-sided audit | A single audit loads Following and Followers once each, page by page, deduplicates, and matches every relationship locally. |
 | Report-first side panel | Docks to the right of Instagram or TikTok and opens as an account report: both counts on one axis, mutuals, and ranked segments that open their lists. |
-| Who unfollowed you | Each followers audit is compared with the previous snapshot stored in this browser, listing new followers and accounts that left. |
-| Focused segments | Don’t follow you back, you don’t follow back, unfollowed you, protected, everyone you follow, everyone who follows you — with instant search (press <kbd>/</kbd>, <kbd>Esc</kbd> to go back). |
+| Who unfollowed you | Each followers audit is compared with the previous snapshot stored in this browser and lists the accounts that left. |
+| Follower history | One point per audit: a chart of your follower count over time and, per audit, who arrived and who left. |
+| Focused segments | Don’t follow you back, you don’t follow back, unfollowed you, protected, everyone you follow, everyone who follows you, and follow requests you sent — with instant search and filters (verified, private, no profile photo). |
+| Fast selection | Shift+click ranges, “select the first N”, select visible, and keyboard shortcuts (<kbd>/</kbd> search, <kbd>J</kbd>/<kbd>K</kbd> move, <kbd>X</kbd> select, <kbd>A</kbd> select visible, <kbd>P</kbd> protect, <kbd>?</kbd> help, <kbd>Esc</kbd> back). Hovering an account shows a larger preview beside the panel, built from data already loaded. |
 | Protected accounts | Stored locally and permanently excluded from action queues. Export and import the list as a JSON backup. |
-| Safe action queue | Instagram unfollows and follower removals run one at a time after confirmation, with configurable pauses, a time-left estimate, and an automatic stop on rate limits, refusals, or repeated failures. |
+| Safe action queue | Instagram unfollows, follower removals, follow-backs and request cancellations run one at a time after confirmation, with a no-op pre-check, varied pauses, a rolling hourly cap, a time-left estimate, and an automatic stop on rate limits, refusals, or repeated failures. |
+| Resume and undo | A confirmed queue is saved, so it can be resumed after it pauses itself or the tab closes. The activity log lists every action, and unfollows can be undone by following again. |
+| Sent follow requests | Import `pending_follow_requests.json` from Instagram’s data download and withdraw the requests you no longer want. |
 | TikTok, read-only | Imports the official `Follower.json` / `Following.json` export and offers a guided, one-profile-at-a-time manual review. |
 | Minimize | Collapse the panel into a small pill and keep browsing while an audit or queue runs. |
-| Portable results | Exports the current view as spreadsheet-safe CSV. |
+| Portable results | Exports the current view as spreadsheet-safe CSV, Excel (`.xlsx`) or JSON. |
+| Compact list | A denser list for long reviews, remembered in this browser. |
 | Five languages | English, Português, Español, Français, Deutsch, plus light and dark themes. |
 
 ## FAQ
@@ -89,7 +94,9 @@ The destructive path is intentionally slower than the review path:
 - unfollow and follower-removal requests are never retried automatically;
 - every run requires an explicit confirmation listing the selected accounts;
 - protected accounts cannot be selected;
-- the queue is sequential, cancellable, and delay-controlled;
+- the queue is sequential, cancellable, and delay-controlled, with ±30% variation, a doubled pause after a failure, and a rolling hourly cap (40 actions by default);
+- before the first action, a pre-check that changes nothing (unfollowing your own account) confirms Instagram still accepts the requests; if Instagram answers with its web page instead, nothing is changed and the panel asks you to get the latest version;
+- follow requests imported from an export are dropped when the account already appears in Following, so cancelling a request can never unfollow someone;
 - the queue stops itself when Instagram answers with a rate limit, a challenge, or an HTTP 200 refusal body, and after three consecutive failures;
 - malformed API payloads fail closed instead of reaching the interface;
 - exported CSV cells are escaped against spreadsheet formula injection;
@@ -101,6 +108,8 @@ The destructive path is intentionally slower than the review path:
 2. Open [Instagram](https://www.instagram.com/) or [TikTok](https://www.tiktok.com/) in a desktop browser.
 3. Open Developer Tools (<kbd>F12</kbd>, or <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>J</kbd> on macOS), switch to **Console**, paste the script, and press <kbd>Enter</kbd>. Chrome may ask you to type `allow pasting` the first time.
 4. On Instagram, choose a list and run the audit. On TikTok, import the extracted `Follower.json` and `Following.json` files from **Settings and privacy → Account → Download your data** (request JSON format).
+
+**Without the console:** install the [userscript](https://marquezinii.github.io/follow-audit/followaudit.user.js) in Tampermonkey or Violentmonkey (it adds a small launcher button and updates itself), or download the [browser extension](https://marquezinii.github.io/follow-audit/followaudit-extension.zip) and load it unpacked in Chrome, Edge or Firefox. The extension only asks for `activeTab` and `scripting`: it can touch a page only after you click its button on that tab.
 
 Running the script again restores a minimized panel instead of opening a second one. The bundle refuses to start outside `instagram.com` or `tiktok.com`, except on localhost where it enters preview mode; add `?platform=tiktok` to inspect the TikTok state.
 
@@ -142,14 +151,17 @@ The local server prints two URLs: the live preview (`/`) with deterministic samp
 npm run check
 ```
 
-Runs ESLint, the Node test suite, TypeScript type checking, website validation (translations, CSP hash, per-language pages, hreflang, structured data, asset references), and the production build. CI runs the same gate plus `npm audit` and verifies that the committed `public/dist.js` matches the sources.
+Runs ESLint, the Node test suite (including contract tests against anonymized Instagram response fixtures), TypeScript type checking, website validation (translations, CSP hash, per-language pages, hreflang, structured data, asset references), and the production build. CI runs the same gate plus `npm audit`, verifies that the committed distributables (`public/dist.js`, the userscript and the extension zip) match the sources, and runs the Playwright end-to-end suite (`npm run test:e2e`) against the local preview.
 
 ### Project map
 
 ```text
 src/
-├── core.ts          # validation, pagination, queue (halting + ETA), snapshots, CSV
-├── instagram.ts     # authenticated Instagram request boundary and refusal detection
+├── core.ts          # validation, pagination, queue (halting, pacing hooks, ETA), snapshots, CSV
+├── actions.ts       # resumable queue, action log, pacing, history, request import, JSON export
+├── xlsx.ts          # dependency-free .xlsx writer
+├── version.ts       # release version and date baked into every copy
+├── instagram.ts     # authenticated Instagram request boundary, pre-check and refusal detection
 ├── tiktok.ts        # official export parser and relationship comparison
 ├── storage.ts       # validated localStorage access, snapshots, protected-list backups
 ├── preview.ts       # deterministic sample data for local development
@@ -157,10 +169,11 @@ src/
 ├── main.ts          # panel controller and browser state
 ├── ui/              # layout template, styles, icons
 └── assets/          # brand mark and subset font embedded in the bundle
-tests/               # deterministic checks for the critical logic
+tests/               # deterministic checks for the critical logic, plus Instagram contract fixtures
+e2e/                 # Playwright end-to-end tests against the local preview
 public/              # GitHub Pages website (English source page, five translated pages generated at build) and the distributable dist.js
 assets/brand/        # source logo and mark files
-scripts/             # site checks, language pages and sitemap generation, build copy, local static server
+scripts/             # site checks, language pages and sitemap generation, build copy, userscript and extension packaging, local static server
 ```
 
 ## Privacy model
@@ -172,6 +185,8 @@ scripts/             # site checks, language pages and sitemap generation, build
 | Following and follower lists | Held in memory for the current run. Selected TikTok files are never uploaded. |
 | Follower snapshot | Follower IDs, usernames, and names from the last followers audit, stored in this browser's `localStorage` per account for change tracking. Clear it any time in **Settings → Clear audit history**. |
 | Protected IDs | Stored only in this browser's `localStorage`; exportable as a JSON file you control. |
+| Queue, activity log, history | The pending queue, the log of actions made through FollowAudit and the per-audit history (counts plus usernames that arrived or left) are stored in this browser's `localStorage` per account. **Clear audit history** also removes the log and history. |
+| Sent follow requests | The selected `pending_follow_requests.json` is read locally and kept only in memory. Cancelling a request reads that profile's public page once to find its numeric ID. |
 | Analytics / backend | None. |
 
 ## Known constraints
@@ -181,7 +196,9 @@ scripts/             # site checks, language pages and sitemap generation, build
 - Instagram audits must run in the same browser profile as the authenticated session.
 - Very large follower lists (roughly 30,000+) are not snapshotted, so change tracking is skipped for them.
 - TikTok exports can lag behind recent account changes and must be requested in JSON format and extracted before import.
-- Closing or reloading the tab ends the active scan or queue.
+- Closing or reloading the tab ends the active scan; an unfinished action queue can be resumed from the report.
+- Instagram's web app doesn't list follow requests you sent, so they come from its data download, which can be out of date.
+- Because Instagram's content policy blocks requests to other sites, a console copy can't check for updates; it shows a notice when it is more than 45 days old. The userscript updates itself.
 
 ## Contributing
 

@@ -33,10 +33,12 @@
     "test": "tsx --test tests/**/*.test.ts",
     "lint": "eslint src tests",
     "check:site": "node --check public/site.js && node scripts/check-site.cjs",
-    "check": "npm run lint && npm run test && npm run typecheck && npm run check:site && npm run build"
+    "check": "npm run lint && npm run test && npm run typecheck && npm run check:site && npm run build",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.65.1",
     "@types/node": "^26.6.5",
     "esbuild": "^0.28.2",
     "eslint": "^10.13.0",

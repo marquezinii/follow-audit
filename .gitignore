@@ -16,3 +16,5 @@ public/pt-br/index.html
 public/es/index.html
 public/fr/index.html
 public/de/index.html
+test-results/
+playwright-report/

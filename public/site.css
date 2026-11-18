@@ -214,6 +214,8 @@ ol, ul { padding: 0; list-style: none; }
 .key { display: inline-flex; flex: 0 0 auto; gap: 4px; color: var(--quiet); font-size: 13px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
 kbd { display: inline-grid; place-items: center; min-width: 30px; height: 28px; padding: 0 7px; border: 1.5px solid var(--rule); border-bottom-width: 3px; border-radius: 7px; color: var(--ink); font: 800 12px/1 Manrope, system-ui, sans-serif; }
 .fine { color: var(--quiet); font-size: 13.5px; }
+.alt-install { margin-top: 10px; }
+.alt-install a { color: var(--blue); font-weight: 750; }
 .console {
   display: flex; align-items: center; gap: 8px; margin-top: auto; padding: 12px 14px; overflow: hidden; border-radius: 10px;
   color: #c9d4e6; background: var(--console); font: 600 13px/1.4 ui-monospace, "SFMono-Regular", Consolas, monospace; white-space: nowrap;
