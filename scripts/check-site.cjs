@@ -68,21 +68,22 @@ for (const locale of locales) {
   assetCount += assets.length;
 }
 
-// Guides: hand-written long-form pages, each self-canonical and in one reciprocal hreflang cluster.
-const pageDirectories = new Set([...locales.map(folder), ...Object.values(GUIDES)]);
+// Guides: hand-written long-form pages, each self-canonical and in its topic's reciprocal hreflang cluster.
+const guidePages = GUIDES.flatMap((topic) => Object.entries(topic).map(([locale, path]) => ({ topic, locale, path })));
+const pageDirectories = new Set([...locales.map(folder), ...guidePages.map(({ path }) => path)]);
 const plainText = (markup) => markup.replace(/<[^>]+>/g, '').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
 const wordCount = (text) => text.split(/\s+/).filter(Boolean).length;
 const siteFile = (reference, pageUrl) => {
   const target = new URL(reference, pageUrl).href;
   return target.startsWith(base) ? target.slice(base.length).split(/[?#]/)[0] : null;
 };
-const guideAlternates = [...Object.entries(GUIDES).map(([locale, path]) => `${locale} ${base}${path}`), `x-default ${base}${GUIDES.en}`];
+const guideAlternates = (topic) => [...Object.entries(topic).map(([locale, path]) => `${locale} ${base}${path}`), `x-default ${base}${topic.en}`];
 const sitemapXml = sitemap(html, locales);
 const llms = read('llms.txt');
 const landingCsp = html.match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)">/)[1];
 
-for (const [locale, path] of Object.entries(GUIDES)) {
-  const where = `${locale} guide`;
+for (const { topic, locale, path } of guidePages) {
+  const where = `${locale} guide ${path}`;
   const url = base + path;
   if (!existsSync(join(publicDir, path, 'index.html'))) fail(`${where}: public/${path}index.html is missing.`);
   const page = read(`${path}index.html`);
@@ -92,7 +93,7 @@ for (const [locale, path] of Object.entries(GUIDES)) {
   if (attribute(/<link rel="canonical" href="([^"]+)">/) !== url) fail(`${where}: canonical must be its own URL.`);
   if (attribute(/<meta property="og:url" content="([^"]+)">/) !== url) fail(`${where}: og:url must be its own URL.`);
   const alternates = [...page.matchAll(/<link rel="alternate" hreflang="([^"]+)" href="([^"]+)">/g)].map((match) => `${match[1]} ${match[2]}`);
-  if (alternates.join('\n') !== guideAlternates.join('\n')) fail(`${where}: hreflang alternates must be:\n${guideAlternates.join('\n')}`);
+  if (alternates.join('\n') !== guideAlternates(topic).join('\n')) fail(`${where}: hreflang alternates must be:\n${guideAlternates(topic).join('\n')}`);
   if (!llms.includes(url)) fail(`${where}: llms.txt must list it.`);
   if (!sitemapXml.includes(`<loc>${url}</loc>`)) fail(`${where}: the sitemap must list it.`);
 
@@ -149,19 +150,23 @@ for (const [locale, path] of Object.entries(GUIDES)) {
     if (!known) fail(`${where}: broken link ${reference}.`);
   }
 
-  // Every guide links to its landing page, to the other guides and to the Copy script action.
+  // Every guide links to its landing page, to its other languages, to the other guides in its language (or English)
+  // and to the Copy script action.
   const links = [...page.matchAll(/href="([^"]*)"/g)].map((match) => siteFile(match[1], url));
-  for (const expected of [folder(locale), ...Object.values(GUIDES).filter((other) => other !== path)]) {
+  const related = [...Object.values(topic), ...GUIDES.filter((other) => other !== topic).map((other) => guidePath(locale, other))];
+  for (const expected of [folder(locale), ...related.filter((other) => other !== path)]) {
     if (!links.includes(expected)) fail(`${where}: missing a link to ${base}${expected}.`);
   }
   if (!page.includes('class="button primary copy-script"')) fail(`${where}: missing the Copy script button.`);
 }
 
-// Every landing page links to the guide in its language (English when none exists).
+// Every landing page links to each guide in its language (English when none exists).
 for (const locale of locales) {
   const pageUrl = base + folder(locale);
   const links = [...renderLocale(html, translations, locale).matchAll(/href="([^"]*)"/g)].map((match) => siteFile(match[1], pageUrl));
-  if (!links.includes(guidePath(locale))) fail(`${locale} page: must link to ${base}${guidePath(locale)}.`);
+  for (const topic of GUIDES) {
+    if (!links.includes(guidePath(locale, topic))) fail(`${locale} page: must link to ${base}${guidePath(locale, topic)}.`);
+  }
 }
 
-console.log(`Site: ${locales.length} locales, ${required.size} strings, ${assetCount} asset references, ${Object.keys(GUIDES).length} guides, CSP hash verified.`);
+console.log(`Site: ${locales.length} locales, ${required.size} strings, ${assetCount} asset references, ${guidePages.length} guides in ${GUIDES.length} topics, CSP hash verified.`);

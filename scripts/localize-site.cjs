@@ -3,17 +3,27 @@
 
 const OG_LOCALES = { en: 'en_US', 'pt-BR': 'pt_BR', es: 'es_ES', fr: 'fr_FR', de: 'de_DE' };
 
-// Hand-written long-form guides (public/<path>index.html). They form their own reciprocal hreflang cluster, with
-// the English guide as x-default. Languages without a guide link to the English one from the landing page.
-const GUIDES = {
-  en: 'guides/who-doesnt-follow-you-back-on-instagram/',
-  'pt-BR': 'pt-br/guias/quem-nao-te-segue-de-volta-no-instagram/',
-};
+// Hand-written long-form guides (public/<path>index.html), one entry per topic. Each topic forms its own reciprocal
+// hreflang cluster, with the English guide as x-default. Languages without a guide link to the English one.
+const GUIDES = [
+  {
+    en: 'guides/who-doesnt-follow-you-back-on-instagram/',
+    'pt-BR': 'pt-br/guias/quem-nao-te-segue-de-volta-no-instagram/',
+  },
+  {
+    en: 'guides/who-unfollowed-you-on-instagram/',
+    'pt-BR': 'pt-br/guias/quem-deixou-de-te-seguir-no-instagram/',
+  },
+  {
+    en: 'guides/instagram-unfollow-limits/',
+    'pt-BR': 'pt-br/guias/limite-de-deixar-de-seguir-no-instagram/',
+  },
+];
 
 const escape = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const folder = (locale) => (locale === 'en' ? '' : `${locale.toLowerCase()}/`);
 const label = (locale) => (locale === 'pt-BR' ? 'PT' : locale.toUpperCase());
-const guidePath = (locale) => GUIDES[locale] ?? GUIDES.en;
+const guidePath = (locale, topic = GUIDES[0]) => topic[locale] ?? topic.en;
 const baseUrl = (html) => html.match(/<link rel="canonical" href="([^"]+)">/)[1];
 
 function loadTranslations(script) {
@@ -56,10 +66,9 @@ function renderLocale(html, translations, locale) {
   if (locale !== 'en') {
     // The pages live one folder deeper: point the English entry of the language menu at the root and
     // prefix every other relative reference.
-    out = out
-      .replace('href="./" hreflang="en"', 'href="../" hreflang="en"')
-      .replaceAll(`href="${GUIDES.en}"`, `href="${guidePath(locale)}"`)
-      .replace(/\b(src|href)="(?!https?:|#|mailto:|data:|\.\/|\.\.\/)([^"]+)"/g, '$1="../$2"');
+    out = out.replace('href="./" hreflang="en"', 'href="../" hreflang="en"');
+    for (const topic of GUIDES) out = out.replaceAll(`href="${topic.en}"`, `href="${guidePath(locale, topic)}"`);
+    out = out.replace(/\b(src|href)="(?!https?:|#|mailto:|data:|\.\/|\.\.\/)([^"]+)"/g, '$1="../$2"');
   }
   return out;
 }
@@ -71,10 +80,12 @@ function sitemap(html, locales) {
     return `  <url>\n    <loc>${base}${path}</loc>\n${links}\n  </url>`;
   };
   const pages = [...locales.map((locale) => [locale, folder(locale)]), ['x-default', '']];
-  const guides = [...Object.entries(GUIDES), ['x-default', GUIDES.en]];
   const urls = [
     ...locales.map((locale) => entry(folder(locale), pages)),
-    ...Object.values(GUIDES).map((path) => entry(path, guides)),
+    ...GUIDES.flatMap((topic) => {
+      const alternates = [...Object.entries(topic), ['x-default', topic.en]];
+      return Object.values(topic).map((path) => entry(path, alternates));
+    }),
   ].join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls}\n</urlset>\n`;
 }
