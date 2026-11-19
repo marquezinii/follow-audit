@@ -7,6 +7,11 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: development
+    ignore:
+      # typescript-eslint pins its TypeScript peer range (currently <6.1), so a TypeScript
+      # minor or major bump breaks `npm ci`. Raise TypeScript together with typescript-eslint.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
